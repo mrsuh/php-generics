@@ -4,8 +4,59 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e3b363e5f02fd3c873e36554d733f9a3",
-    "packages": [],
+    "content-hash": "deeac9fd318939eb481e855e4c1d778d",
+    "packages": [
+        {
+            "name": "php-generics/parser",
+            "version": "1.1.0",
+            "source": {
+                "type": "git",
+                "url": "git@gitlab.com:php-generics/parser.git",
+                "reference": "77e6be7363f12cb03b1bcb24cbbc4bc28e5b1aa7"
+            },
+            "require": {
+                "ext-tokenizer": "*",
+                "php": ">=7.0"
+            },
+            "require-dev": {
+                "ircmaxell/php-yacc": "^0.0.7",
+                "phpunit/phpunit": "^6.5 || ^7.0 || ^8.0 || ^9.0"
+            },
+            "bin": [
+                "bin/php-parse"
+            ],
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "4.9-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "PhpParser\\": "lib/PhpParser"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "PhpParser\\": "test/PhpParser/"
+                }
+            },
+            "license": [
+                "BSD-3-Clause"
+            ],
+            "authors": [
+                {
+                    "name": "Nikita Popov"
+                }
+            ],
+            "description": "A PHP parser written in PHP",
+            "keywords": [
+                "parser",
+                "php"
+            ],
+            "time": "2021-07-11T15:24:33+00:00"
+        }
+    ],
     "packages-dev": [
         {
             "name": "composer/ca-bundle",
