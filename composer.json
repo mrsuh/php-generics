@@ -1,0 +1,18 @@
+{
+    "name": "php-generics/library",
+    "type": "composer-plugin",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {"Mrsuh\\PhpGenerics\\": "src/"}
+    },
+    "extra": {
+        "class": "Mrsuh\\PhpGenerics\\Autoload\\ComposerPlugin"
+    },
+    "require": {
+        "php": ">=7.4",
+        "composer-plugin-api": "^1.0|^2.0"
+    },
+    "require-dev": {
+        "composer/composer": "^1.0.2|^2.0"
+    }
+}
