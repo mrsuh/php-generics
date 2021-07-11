@@ -61,6 +61,8 @@ class GenericClass
         /** @var Class_ $classNode */
         $classNode = current($nodes);
 
+        $classNode->name->name = $this->generateConcreteClassName($genericTypes);
+
         /** @var GenericParameter[] $genericParameters */
         $genericParameters = (array)$classNode->getAttribute('generics');
 

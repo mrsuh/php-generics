@@ -62,7 +62,7 @@ class Compiler
 
         $classFileContent = file_get_contents($classFilePath);
 
-        $nodes = Parser::parse($classFileContent);
+        $nodes = Parser::resolveNames(Parser::parse($classFileContent));
 
         /** @var Class_ $classNode */
         $classNode = Parser::filterOne($nodes, Class_::class);
@@ -85,7 +85,7 @@ class Compiler
             $genericClassFqn      = $newExprNode->class->toString();
             $genericClassFilePath = $this->loader->findFile($genericClassFqn);
 
-            $genericClass = new GenericClass($genericClassFilePath, $genericClassFqn);
+            $genericClass = new GenericClass($genericClassFqn, $genericClassFilePath);
 
             $concreteClassName     = $genericClass->generateConcreteClassName($genericTypes);
             $concreteClassFqn      = $genericClass->generateConcreteClassFqn($genericTypes);
