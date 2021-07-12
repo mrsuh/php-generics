@@ -44,7 +44,7 @@ class DumpCommand extends BaseCommand
         foreach ($autoloads['psr-4'] as $namespace => $paths) {
             $exportedPaths = [];
             foreach ($paths as $path) {
-                $exportedPaths[] = $autoloadGenerator->getPathCode($filesystem, $basePath, $vendorPath, $path);
+                $exportedPaths[] = $autoloadGenerator->getAbsolutePath($filesystem, $basePath, $vendorPath, $path);
             }
 
             $classLoader->setPsr4($namespace, $exportedPaths);
@@ -53,7 +53,7 @@ class DumpCommand extends BaseCommand
         foreach ($autoloads['psr-0'] as $namespace => $paths) {
             $exportedPaths = [];
             foreach ($paths as $path) {
-                $exportedPaths[] = $autoloadGenerator->getPathCode($filesystem, $basePath, $vendorPath, $path);
+                $exportedPaths[] = $autoloadGenerator->getAbsolutePath($filesystem, $basePath, $vendorPath, $path);
             }
 
             $classLoader->set($namespace, $exportedPaths);
@@ -71,12 +71,14 @@ class DumpCommand extends BaseCommand
             $cacheDir  = $exportedPaths[0];
             $sourceDir = $exportedPaths[1];
 
-            $compiler = new Compiler($classLoader, $cacheDir);
+            $filesystem->ensureDirectoryExists($cacheDir);
+
+            $compiler = new Compiler($classLoader, $filesystem, $cacheDir);
 
             $finder      = new Finder();
-            $sourceFiles = $finder->in($sourceDir)->name('\.php$')->files();
+            $sourceFiles = $finder->in($sourceDir)->name('*.php')->files();
             foreach ($sourceFiles as $sourceFile) {
-                $filePath = $sourceFile->getRelativePathname();
+                $filePath = $sourceFile->getRealPath();
 
                 if ($compiler->needToHandle($filePath)) {
                     $output->writeln('Handle: ' . $filePath);

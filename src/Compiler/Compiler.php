@@ -3,6 +3,7 @@
 namespace Mrsuh\PhpGenerics\Compiler;
 
 use Composer\Autoload\ClassLoader;
+use Composer\Util\Filesystem;
 use PhpParser\Node\Expr\New_;
 use PhpParser\Node\GenericParameter;
 use PhpParser\Node\Name;
@@ -13,15 +14,17 @@ use PhpParser\Node\Stmt\UseUse;
 class Compiler
 {
     private ClassLoader $loader;
+    private Filesystem  $filesystem;
     private string      $cacheDir;
 
     /** @var GenericClass[] */
     private array $loaded = [];
 
-    public function __construct(ClassLoader $loader, string $cacheDir)
+    public function __construct(ClassLoader $loader, Filesystem $filesystem, string $cacheDir)
     {
-        $this->loader   = $loader;
-        $this->cacheDir = $cacheDir;
+        $this->loader     = $loader;
+        $this->filesystem = $filesystem;
+        $this->cacheDir   = $cacheDir;
     }
 
     public function needToHandle(string $classFilePath): bool
@@ -71,12 +74,14 @@ class Compiler
 
             $genericClass = new GenericClass($genericClassFqn, $genericClassFilePath);
 
-            $concreteClassName     = $genericClass->generateConcreteClassName($genericTypes);
-            $concreteClassFqn      = $genericClass->generateConcreteClassFqn($genericTypes);
-            $concreteClassContent  = $genericClass->generateConcreteClassContent($genericTypes);
-            $concreteClassFilePath = $this->cacheDir . DIRECTORY_SEPARATOR . $concreteClassName . '.php';
+            $concreteClassName = $genericClass->generateConcreteClassName($genericTypes);
+            $concreteClassFqn  = $genericClass->generateConcreteClassFqn($genericTypes);
+            $concreteClassAst  = $genericClass->generateConcreteClassAst($genericTypes);
 
-            file_put_contents($concreteClassFilePath, $concreteClassContent);
+            $concreteClassFilePath = $this->cacheDir . DIRECTORY_SEPARATOR . Parser::getRelativeDir($concreteClassAst) . DIRECTORY_SEPARATOR . $concreteClassName . '.php';
+
+            $this->filesystem->ensureDirectoryExists(dirname($concreteClassFilePath));
+            file_put_contents($concreteClassFilePath, Parser::build($concreteClassAst));
 
             $newExprNode->class->parts[count($newExprNode->class->parts) - 1] = $concreteClassName;
 
@@ -85,8 +90,9 @@ class Compiler
             $useNode->uses[] = new UseUse(new Name($concreteClassFqn));
         }
 
-        $newFilePath = $this->cacheDir . DIRECTORY_SEPARATOR . $className . '.php';
+        $newFilePath = $this->cacheDir . DIRECTORY_SEPARATOR . Parser::getRelativeDir($nodes) . DIRECTORY_SEPARATOR . $className . '.php';
 
+        $this->filesystem->ensureDirectoryExists(dirname($newFilePath));
         file_put_contents($newFilePath, Parser::build($nodes));
     }
 }

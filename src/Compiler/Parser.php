@@ -4,6 +4,8 @@ namespace Mrsuh\PhpGenerics\Compiler;
 
 use PhpParser\Lexer\Emulative;
 use PhpParser\Node;
+use PhpParser\Node\Stmt\Class_;
+use PhpParser\Node\Stmt\Namespace_;
 use PhpParser\NodeFinder;
 use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor\NameResolver;
@@ -71,6 +73,16 @@ class Parser
         $prettyPrinter = new Standard();
 
         return $prettyPrinter->prettyPrintFile($nodes) . PHP_EOL;
+    }
+
+    public static function getRelativeDir(array $nodes): string
+    {
+        /** @var Namespace_ $namespaceNode */
+        $namespaceNode = Parser::filterOne($nodes, Namespace_::class);
+
+        $parts   = $namespaceNode->name->parts;
+
+        return implode(DIRECTORY_SEPARATOR, $parts);
     }
 }
 
