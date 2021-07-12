@@ -92,6 +92,12 @@ class Parser
             case $node instanceof Node\Identifier:
                 $node->name = $name;
                 break;
+            case $node instanceof Node\NullableType:
+                self::setNodeName($node->type, $name);
+                break;
+            case $node instanceof Node\UnionType:
+                //@todo
+                break;
         }
     }
 }
