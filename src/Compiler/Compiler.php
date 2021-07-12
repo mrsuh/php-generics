@@ -78,7 +78,7 @@ class Compiler
             $concreteClassFqn  = $genericClass->generateConcreteClassFqn($genericTypes);
             $concreteClassAst  = $genericClass->generateConcreteClassAst($genericTypes);
 
-            $concreteClassFilePath = $this->cacheDir . DIRECTORY_SEPARATOR . Parser::getRelativeDir($concreteClassAst) . DIRECTORY_SEPARATOR . $concreteClassName . '.php';
+            $concreteClassFilePath = $this->cacheDir . DIRECTORY_SEPARATOR . Parser::getRelativeDir($concreteClassAst, $this->loader) . DIRECTORY_SEPARATOR . $concreteClassName . '.php';
 
             $this->filesystem->ensureDirectoryExists(dirname($concreteClassFilePath));
             file_put_contents($concreteClassFilePath, Parser::build($concreteClassAst));
@@ -90,7 +90,7 @@ class Compiler
             $useNode->uses[] = new UseUse(new Name($concreteClassFqn));
         }
 
-        $newFilePath = $this->cacheDir . DIRECTORY_SEPARATOR . Parser::getRelativeDir($nodes) . DIRECTORY_SEPARATOR . $className . '.php';
+        $newFilePath = $this->cacheDir . DIRECTORY_SEPARATOR . Parser::getRelativeDir($nodes, $this->loader) . DIRECTORY_SEPARATOR . $className . '.php';
 
         $this->filesystem->ensureDirectoryExists(dirname($newFilePath));
         file_put_contents($newFilePath, Parser::build($nodes));

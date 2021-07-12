@@ -2,6 +2,7 @@
 
 namespace Mrsuh\PhpGenerics\Compiler;
 
+use Composer\Autoload\ClassLoader;
 use PhpParser\Lexer\Emulative;
 use PhpParser\Node;
 use PhpParser\Node\Stmt\Class_;
@@ -75,14 +76,21 @@ class Parser
         return $prettyPrinter->prettyPrintFile($nodes) . PHP_EOL;
     }
 
-    public static function getRelativeDir(array $nodes): string
+    public static function getRelativeDir(array $nodes, ClassLoader $classLoader): string
     {
         /** @var Namespace_ $namespaceNode */
         $namespaceNode = Parser::filterOne($nodes, Namespace_::class);
 
-        $parts   = $namespaceNode->name->parts;
+        $dir = implode(DIRECTORY_SEPARATOR, $namespaceNode->name->parts);
 
-        return implode(DIRECTORY_SEPARATOR, $parts);
+        $psr4Prefixes = $classLoader->getPrefixesPsr4();
+        foreach (array_keys($psr4Prefixes) as $namespace) {
+            $prefix = str_replace('\\', DIRECTORY_SEPARATOR, $namespace);
+
+            $dir = str_replace($prefix, '', $dir);
+        }
+
+        return $dir;
     }
 }
 
