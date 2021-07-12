@@ -81,7 +81,7 @@ class GenericClass
         /** @var Property[] $propertyNodes */
         $propertyNodes = Parser::filter([$classNode], [Property::class]);
         foreach ($propertyNodes as $propertyNode) {
-            $propertyType = $propertyNode->type->getAttribute('originalName');
+            $propertyType = (string)$propertyNode->type->getAttribute('originalName');
             if (!array_key_exists($propertyType, $genericsMap)) {
                 continue;
             }
@@ -93,7 +93,7 @@ class GenericClass
         $classMethodNodes = Parser::filter([$classNode], [ClassMethod::class]);
         foreach ($classMethodNodes as $classMethodNode) {
             foreach ($classMethodNode->params as $param) {
-                $paramType = $param->type->getAttribute('originalName');
+                $paramType = (string)$param->type->getAttribute('originalName');
 
                 if (!array_key_exists($paramType, $genericsMap)) {
                     continue;
