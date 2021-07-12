@@ -4,31 +4,19 @@ namespace Mrsuh\PhpGenerics\Compiler;
 
 class Result
 {
-    private ConcreteClass $usageClass;
-
     /** @var ConcreteClass[] */
-    private array $handledClasses;
+    private array $concreteClasses;
 
-    public function addGenericClass(ConcreteClass $genericClass): void
+    public function addConcreteClass(ConcreteClass $concreteClass): void
     {
-        $this->handledClasses[] = $genericClass;
-    }
-
-    public function setUsageClass(ConcreteClass $usageClass): void
-    {
-        $this->usageClass = $usageClass;
-    }
-
-    public function getUsageClass(): ConcreteClass
-    {
-        return $this->usageClass;
+        $this->concreteClasses[] = $concreteClass;
     }
 
     /**
      * @return ConcreteClass[]
      */
-    public function getGenericClasses(): array
+    public function getConcreteClasses(): array
     {
-        return $this->handledClasses;
+        return $this->concreteClasses;
     }
 }

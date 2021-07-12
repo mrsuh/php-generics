@@ -59,7 +59,7 @@ class Engine
             $genericClass = new GenericClass($genericClassFileContent);
 
             $concreteClass = $genericClass->generateConcreteClass($genericTypes);
-            $result->addGenericClass($concreteClass);
+            $result->addConcreteClass($concreteClass);
 
             $newExprNode->class->parts[count($newExprNode->class->parts) - 1] = $concreteClass->name;
         }
@@ -84,7 +84,7 @@ class Engine
             $genericClass = new GenericClass($genericClassFileContent);
 
             $concreteClass = $genericClass->generateConcreteClass($genericTypes);
-            $result->addGenericClass($concreteClass);
+            $result->addConcreteClass($concreteClass);
 
             $classConstFetchStmtNode->class->parts[count($classConstFetchStmtNode->class->parts) - 1] = $concreteClass->name;
         }
@@ -97,7 +97,7 @@ class Engine
         $classNode = Parser::filterOne($nodes, Class_::class);
         $className = $classNode->name->toString();
 
-        $result->setUsageClass(new ConcreteClass(
+        $result->addConcreteClass(new ConcreteClass(
             $className,
             $namespace . '\\' . $className,
             $nodes
