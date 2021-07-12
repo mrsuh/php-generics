@@ -3,10 +3,14 @@
 namespace Mrsuh\PhpGenerics\Compiler;
 
 use PhpParser\Node\GenericParameter;
+use PhpParser\Node\Identifier;
+use PhpParser\Node\Name;
+use PhpParser\Node\NullableType;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Namespace_;
 use PhpParser\Node\Stmt\Property;
+use PhpParser\Node\UnionType;
 
 class GenericClass
 {
@@ -97,8 +101,22 @@ class GenericClass
                 continue;
             }
 
-            $returnType = $classMethodNode->returnType->getAttribute('originalName');
-            if (!array_key_exists($returnType, $genericsMap)) {
+            $returnType = '';
+            $returnTypeNode = $classMethodNode->returnType;
+            switch(true) {
+                case $returnTypeNode instanceof Identifier:
+                case $returnTypeNode instanceof Name:
+                    $returnType = (string)$returnTypeNode->getAttribute('originalName');
+                    break;
+                case $returnTypeNode instanceof NullableType:
+                    $returnType = (string)$returnTypeNode->type->getAttribute('originalName');
+                    break;
+                case $returnTypeNode instanceof UnionType:
+                    //@todo
+                    break;
+            }
+
+            if ($returnType === '' || !array_key_exists($returnType, $genericsMap)) {
                 continue;
             }
 

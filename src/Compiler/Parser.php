@@ -83,11 +83,29 @@ class Parser
         return str_replace('\\', DIRECTORY_SEPARATOR, $fqn) . '.php';
     }
 
-    public static function setNodeName(Node $node, string $name): void
+    public static function setNodeName(Node &$node, string $name): void
     {
+        $builtinTypes = [
+            'bool'     => true,
+            'int'      => true,
+            'float'    => true,
+            'string'   => true,
+            'iterable' => true,
+            'void'     => true,
+            'object'   => true,
+            'null'     => true,
+            'false'    => true,
+            'mixed'    => true,
+            'never'    => true,
+        ];
+
         switch (true) {
             case $node instanceof Node\Name:
-                $node->parts[count($node->parts) - 1] = $name;
+                if (isset($builtinTypes[strtolower($name)])) {
+                    $node = new Node\Identifier($name);
+                } else {
+                    $node->parts = explode('\\', $name);
+                }
                 break;
             case $node instanceof Node\Identifier:
                 $node->name = $name;

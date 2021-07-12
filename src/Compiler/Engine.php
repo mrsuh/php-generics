@@ -65,7 +65,7 @@ class Engine
             $concreteClass = $genericClass->generateConcreteClass($genericTypes);
             $result->addConcreteClass($concreteClass);
 
-            Parser::setNodeName($newExprNode->class, $concreteClass->name);
+            Parser::setNodeName($newExprNode->class, $concreteClass->fqn);
         }
 
         /** @var ClassConstFetch[] $classConstFetchStmtNodes */
@@ -94,7 +94,7 @@ class Engine
             $concreteClass = $genericClass->generateConcreteClass($genericTypes);
             $result->addConcreteClass($concreteClass);
 
-            Parser::setNodeName($classConstFetchStmtNode->class, $concreteClass->name);
+            Parser::setNodeName($classConstFetchStmtNode->class, $concreteClass->fqn);
         }
 
         /** @var Namespace_ $namespaceNode */
