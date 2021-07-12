@@ -20,7 +20,7 @@ class GenericClass
 
     public function __construct(string $content)
     {
-        $this->ast = Parser::parse($content);
+        $this->ast = Parser::resolveNames(Parser::parse($content));
 
         /** @var Namespace_ $namespaceNode */
         $namespaceNode   = Parser::filterOne($this->ast, Namespace_::class);
@@ -61,7 +61,12 @@ class GenericClass
 
         $genericParameterNames = [];
         foreach ($genericParameters as $genericParameter) {
-            $genericParameterNames[] = (string)$genericParameter->name->getAttribute('originalName');
+            $genericParameterName = (string)$genericParameter->name->getAttribute('originalName');
+            if (empty($genericParameterName)) {
+                echo 'empty $genericParameterName' . PHP_EOL;
+                break;
+            }
+            $genericParameterNames[] = $genericParameterName;
         }
 
         if (count($genericParameterNames) !== count($genericTypes)) {
@@ -101,9 +106,9 @@ class GenericClass
                 continue;
             }
 
-            $returnType = '';
+            $returnType     = '';
             $returnTypeNode = $classMethodNode->returnType;
-            switch(true) {
+            switch (true) {
                 case $returnTypeNode instanceof Identifier:
                 case $returnTypeNode instanceof Name:
                     $returnType = (string)$returnTypeNode->getAttribute('originalName');
