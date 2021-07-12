@@ -33,7 +33,11 @@ class DumpCommand extends BaseCommand
 
         $filesystem = new Filesystem();
 
-        var_dump($autoloads);
+        $basePath = $filesystem->normalizePath(realpath(realpath(getcwd())));
+
+        var_dump($basePath);
+
+        var_dump($autoloads['psr-4']);
 
         $output->writeln('Executing');
     }
