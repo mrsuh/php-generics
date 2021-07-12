@@ -74,14 +74,14 @@ class Parser
         return $prettyPrinter->prettyPrintFile($nodes) . PHP_EOL;
     }
 
-    public static function getRelativeDir(string $fqn, ClassFinder $classLoader): string
+    public static function getRelativeFilePath(string $fqn, ClassFinder $classLoader): string
     {
         $psr4Prefixes = $classLoader->getPrefixesPsr4();
         foreach (array_keys($psr4Prefixes) as $namespace) {
             $fqn = str_replace($namespace, '', $fqn);
         }
 
-        return str_replace('\\', DIRECTORY_SEPARATOR, $fqn);
+        return str_replace('\\', DIRECTORY_SEPARATOR, $fqn) . '.php';
     }
 }
 

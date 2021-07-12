@@ -76,9 +76,9 @@ class DumpCommand extends BaseCommand
                     $result = $engine->handle($content);
 
                     foreach ($result->getConcreteClasses() as $concreteClass) {
-                        $genericFilePath = Parser::getRelativeDir($concreteClass->fqn, $classFinder);
-                        $filesystem->ensureDirectoryExists(dirname($genericFilePath));
-                        file_put_contents($genericFilePath, $printer->printFile($concreteClass->ast));
+                        $concreteFilePath = $cacheDir . DIRECTORY_SEPARATOR . ltrim(Parser::getRelativeFilePath($concreteClass->fqn, $classFinder), DIRECTORY_SEPARATOR);
+                        $filesystem->ensureDirectoryExists(dirname($concreteFilePath));
+                        file_put_contents($concreteFilePath, $printer->printFile($concreteClass->ast));
                         $filesCount++;
 
                         if ($this->getIO()->isVerbose()) {
