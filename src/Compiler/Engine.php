@@ -2,6 +2,7 @@
 
 namespace Mrsuh\PhpGenerics\Compiler;
 
+use PhpParser\Node\Expr\ClassConstFetch;
 use PhpParser\Node\Expr\New_;
 use PhpParser\Node\GenericParameter;
 use PhpParser\Node\Stmt\Class_;
@@ -57,12 +58,35 @@ class Engine
 
             $genericClass = new GenericClass($genericClassFileContent);
 
-            $result->addGenericClass(new HandledClass(
-                $genericClass->generateConcreteClassFqn($genericTypes),
-                $genericClass->generateConcreteClassAst($genericTypes)
-            ));
+            $concreteClass = $genericClass->generateConcreteClass($genericTypes);
+            $result->addGenericClass($concreteClass);
 
-            $newExprNode->class->parts[count($newExprNode->class->parts) - 1] = $genericClass->generateConcreteClassName($genericTypes);
+            $newExprNode->class->parts[count($newExprNode->class->parts) - 1] = $concreteClass->name;
+        }
+
+        /** @var ClassConstFetch[] $classConstFetchStmtNodes */
+        $classConstFetchStmtNodes = Parser::filter($nodes, [ClassConstFetch::class]);
+        foreach ($classConstFetchStmtNodes as $classConstFetchStmtNode) {
+            /** @var GenericParameter[] $genericParameters */
+            $genericParameters = $classConstFetchStmtNode->class->getAttribute('generics');
+            if (!is_array($genericParameters)) {
+                continue;
+            }
+
+            $genericTypes = [];
+            foreach ($genericParameters as $genericParameter) {
+                $genericTypes[] = (string)$genericParameter->name->getAttribute('originalName');
+            }
+
+            $genericClassFqn         = $classConstFetchStmtNode->class->toString();
+            $genericClassFileContent = $this->classFinder->getFileContentByClassFqn($genericClassFqn);
+
+            $genericClass = new GenericClass($genericClassFileContent);
+
+            $concreteClass = $genericClass->generateConcreteClass($genericTypes);
+            $result->addGenericClass($concreteClass);
+
+            $classConstFetchStmtNode->class->parts[count($classConstFetchStmtNode->class->parts) - 1] = $concreteClass->name;
         }
 
         /** @var Namespace_ $namespaceNode */
@@ -73,7 +97,8 @@ class Engine
         $classNode = Parser::filterOne($nodes, Class_::class);
         $className = $classNode->name->toString();
 
-        $result->setUsageClass(new HandledClass(
+        $result->setUsageClass(new ConcreteClass(
+            $className,
             $namespace . '\\' . $className,
             $nodes
         ));

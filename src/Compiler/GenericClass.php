@@ -42,12 +42,7 @@ class GenericClass
         return $this->namespace . '\\' . $this->generateConcreteClassName($genericTypes);
     }
 
-    public function getAst(): array
-    {
-        return $this->ast;
-    }
-
-    public function generateConcreteClassAst(array $genericTypes): array
+    public function generateConcreteClass(array $genericTypes): ConcreteClass
     {
         $ast   = $this->ast;
         $nodes = Parser::filter($ast, [Class_::class]);
@@ -110,6 +105,10 @@ class GenericClass
             $classMethodNode->returnType->parts[count($classMethodNode->returnType->parts) - 1] = $genericsMap[$returnType];
         }
 
-        return $ast;
+        return new ConcreteClass(
+            $this->generateConcreteClassName($genericTypes),
+            $this->generateConcreteClassFqn($genericTypes),
+            $ast
+        );
     }
 }

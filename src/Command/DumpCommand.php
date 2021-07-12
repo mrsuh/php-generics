@@ -80,7 +80,7 @@ class DumpCommand extends BaseCommand
                     $filesCount++;
 
                     if ($this->getIO()->isVerbose()) {
-                        $this->getIO()->write(sprintf('<info>%s</info> => <comment>%s</comment>', $result->getUsageClass()->fqn, $usageFilePath));
+                        $this->getIO()->write(sprintf('<info>%s</info>', $result->getUsageClass()->fqn));
                     }
 
                     foreach ($result->getGenericClasses() as $genericClass) {
@@ -90,7 +90,7 @@ class DumpCommand extends BaseCommand
                         $filesCount++;
 
                         if ($this->getIO()->isVerbose()) {
-                            $this->getIO()->write(sprintf('<info>%s</info> => <comment>%s</comment>', $genericClass->fqn, $genericFilePath));
+                            $this->getIO()->write(sprintf('<info>%s</info>', $genericClass->fqn));
                         }
                     }
                 }
