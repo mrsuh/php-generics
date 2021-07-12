@@ -65,10 +65,7 @@ class DumpCommand extends BaseCommand
             }
             $exportedPaths = [];
             foreach ($paths as $path) {
-                $pathCode        = $autoloadGenerator->getPathCode($filesystem, $basePath, $vendorPath, $path);
-                $pathCode        = str_replace('$baseDir', $basePath, $pathCode);
-                $pathCode        = str_replace('$vendorDir', $vendorPath, $pathCode);
-                $exportedPaths[] = $pathCode;
+                $exportedPaths[] = $autoloadGenerator->getAbsolutePath($filesystem, $basePath, $vendorPath, $path);
             }
 
             $cacheDir  = $exportedPaths[0];
