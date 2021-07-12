@@ -30,6 +30,6 @@ class AutoloadGenerator extends \Composer\Autoload\AutoloadGenerator
             }
         }
 
-        return $baseDir . (($path !== false) ? var_export($path, true) : "");
+        return $baseDir . $path;
     }
 }
