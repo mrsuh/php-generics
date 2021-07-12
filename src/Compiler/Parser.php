@@ -4,7 +4,6 @@ namespace Mrsuh\PhpGenerics\Compiler;
 
 use PhpParser\Lexer\Emulative;
 use PhpParser\Node;
-use PhpParser\Node\Stmt\Namespace_;
 use PhpParser\NodeFinder;
 use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor\NameResolver;
@@ -82,6 +81,18 @@ class Parser
         }
 
         return str_replace('\\', DIRECTORY_SEPARATOR, $fqn) . '.php';
+    }
+
+    public static function setNodeName(Node $node, string $name): void
+    {
+        switch (true) {
+            case $node instanceof Node\Name:
+                $node->parts[count($node->parts) - 1] = $name;
+                break;
+            case $node instanceof Node\Identifier:
+                $node->name = $name;
+                break;
+        }
     }
 }
 

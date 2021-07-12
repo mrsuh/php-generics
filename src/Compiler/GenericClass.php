@@ -50,7 +50,7 @@ class GenericClass
         /** @var Class_ $classNode */
         $classNode = current($nodes);
 
-        $classNode->name->name = $this->generateConcreteClassName($genericTypes);
+        Parser::setNodeName($classNode->name, $this->generateConcreteClassName($genericTypes));
 
         /** @var GenericParameter[] $genericParameters */
         $genericParameters = (array)$classNode->getAttribute('generics');
@@ -77,7 +77,7 @@ class GenericClass
                 continue;
             }
 
-            $propertyNode->type->parts[count($propertyNode->type->parts) - 1] = $genericsMap[$propertyType];
+            Parser::setNodeName($propertyNode->type, $genericsMap[$propertyType]);
         }
 
         /** @var ClassMethod[] $classMethodNodes */
@@ -90,7 +90,7 @@ class GenericClass
                     continue;
                 }
 
-                $param->type->parts[count($param->type->parts) - 1] = $genericsMap[$paramType];
+                Parser::setNodeName($param->type, $genericsMap[$paramType]);
             }
 
             if ($classMethodNode->returnType === null) {
@@ -102,7 +102,7 @@ class GenericClass
                 continue;
             }
 
-            $classMethodNode->returnType->parts[count($classMethodNode->returnType->parts) - 1] = $genericsMap[$returnType];
+            Parser::setNodeName($classMethodNode->returnType, $genericsMap[$returnType]);
         }
 
         return new ConcreteClass(

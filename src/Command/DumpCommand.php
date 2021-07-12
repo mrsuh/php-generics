@@ -72,6 +72,11 @@ class DumpCommand extends BaseCommand
             foreach ($sourceFiles as $sourceFile) {
                 $content = file_get_contents($sourceFile->getRealPath());
 
+                if ($content === '') {
+                    $this->getIO()->error('Cant read file ' . $sourceFile->getRealPath());
+                    continue;
+                }
+
                 if ($engine->needToHandle($content)) {
                     $result = $engine->handle($content);
 

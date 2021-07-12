@@ -55,13 +55,17 @@ class Engine
 
             $genericClassFqn         = $newExprNode->class->toString();
             $genericClassFileContent = $this->classFinder->getFileContentByClassFqn($genericClassFqn);
+            if ($genericClassFileContent === '') {
+                echo 'Empty file err' . PHP_EOL; //@todo
+                continue;
+            }
 
             $genericClass = new GenericClass($genericClassFileContent);
 
             $concreteClass = $genericClass->generateConcreteClass($genericTypes);
             $result->addConcreteClass($concreteClass);
 
-            $newExprNode->class->parts[count($newExprNode->class->parts) - 1] = $concreteClass->name;
+            Parser::setNodeName($newExprNode->class, $concreteClass->name);
         }
 
         /** @var ClassConstFetch[] $classConstFetchStmtNodes */
@@ -80,13 +84,17 @@ class Engine
 
             $genericClassFqn         = $classConstFetchStmtNode->class->toString();
             $genericClassFileContent = $this->classFinder->getFileContentByClassFqn($genericClassFqn);
+            if ($genericClassFileContent === '') {
+                echo 'Empty file err' . PHP_EOL; //@todo
+                continue;
+            }
 
             $genericClass = new GenericClass($genericClassFileContent);
 
             $concreteClass = $genericClass->generateConcreteClass($genericTypes);
             $result->addConcreteClass($concreteClass);
 
-            $classConstFetchStmtNode->class->parts[count($classConstFetchStmtNode->class->parts) - 1] = $concreteClass->name;
+            Parser::setNodeName($classConstFetchStmtNode->class, $concreteClass->name);
         }
 
         /** @var Namespace_ $namespaceNode */
