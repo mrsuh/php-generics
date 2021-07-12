@@ -20,18 +20,20 @@ class DumpCommand extends BaseCommand
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $composer            = $this->getComposer();
-        $installationManager = $composer->getInstallationManager();
-        $localRepo           = $composer->getRepositoryManager()->getLocalRepository();
-        $package             = $composer->getPackage();
-        $config              = $composer->getConfig();
+        $this->getIO()->write('<info>Generating generic files</info>');
 
-        $eventDispatcher = $composer->getAutoloadGenerator();
-        $eventDispatcher = $composer->getEventDispatcher();
+        $composer  = $this->getComposer();
+        $localRepo = $composer->getRepositoryManager()->getLocalRepository();
+        $package   = $composer->getPackage();
+        $config    = $composer->getConfig();
 
-        $autoloadGenerator = new AutoloadGenerator($eventDispatcher);
+        $autoloadGenerator = new AutoloadGenerator($composer->getEventDispatcher());
 
-        $packageMap = $autoloadGenerator->buildPackageMap($installationManager, $package, $localRepo->getCanonicalPackages());
+        $packageMap = $autoloadGenerator->buildPackageMap(
+            $composer->getInstallationManager(),
+            $package,
+            $localRepo->getCanonicalPackages()
+        );
 
         $autoloads = $autoloadGenerator->parseAutoloads($packageMap, $package, true);
 
@@ -77,16 +79,20 @@ class DumpCommand extends BaseCommand
 
             $finder      = new Finder();
             $sourceFiles = $finder->in($sourceDir)->name('*.php')->files();
+            $filesCount  = 0;
             foreach ($sourceFiles as $sourceFile) {
                 $filePath = $sourceFile->getRealPath();
 
                 if ($compiler->needToHandle($filePath)) {
-                    $output->writeln('Handle: ' . $filePath);
+                    if ($this->getIO()->isVerbose()) {
+                        $this->getIO()->write('<info>File:</info>' . $filePath);
+                    }
                     $compiler->handle($filePath);
+                    $filesCount++;
                 }
             }
         }
 
-        $output->writeln('Done!');
+        $this->getIO()->write('<info>Generated generic files containing ' . $filesCount . ' classes</info>');
     }
 }
