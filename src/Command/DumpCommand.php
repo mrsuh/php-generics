@@ -33,7 +33,7 @@ class DumpCommand extends BaseCommand
 
         $filesystem = new Filesystem();
 
-        var_dump($autoloads['psr-0']);
+        var_dump($autoloads);
 
         $output->writeln('Executing');
     }
