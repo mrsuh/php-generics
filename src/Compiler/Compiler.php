@@ -24,16 +24,8 @@ class Compiler
         $this->cacheDir = $cacheDir;
     }
 
-    public function needToHandle(string $classFqn): bool
+    public function needToHandle(string $classFilePath): bool
     {
-        $classFilePath = $this->loader->findFile($classFqn);
-        if (!$classFilePath) {
-            echo $classFqn . PHP_EOL;
-            echo 'ERR 1' . PHP_EOL;
-
-            return false;
-        }
-
         $classFileContent = file_get_contents($classFilePath);
 
         $nodes = Parser::parse($classFileContent);
@@ -50,16 +42,8 @@ class Compiler
         return false;
     }
 
-    public function handle(string $classFqn): void
+    public function handle(string $classFilePath): void
     {
-        echo 'Load ' . $classFqn . PHP_EOL;
-
-        $classFilePath = $this->loader->findFile($classFqn);
-        if (!$classFilePath) {
-            echo 'ERR 2' . PHP_EOL;
-            exit(1);
-        }
-
         $classFileContent = file_get_contents($classFilePath);
 
         $nodes = Parser::resolveNames(Parser::parse($classFileContent));
