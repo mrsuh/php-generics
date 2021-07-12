@@ -4,15 +4,15 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "8254cbdf51c97e9a5fcac1c4a893b1e6",
+    "content-hash": "f198407cfc11cf8d7c07ca69f6d6d59e",
     "packages": [
         {
             "name": "php-generics/parser",
-            "version": "1.1.0",
+            "version": "1.2.0",
             "source": {
                 "type": "git",
                 "url": "git@gitlab.com:php-generics/parser.git",
-                "reference": "77e6be7363f12cb03b1bcb24cbbc4bc28e5b1aa7"
+                "reference": "e1a609ad2d85ffa3a9bc8a33722dfa8e0ca08829"
             },
             "require": {
                 "ext-tokenizer": "*",
@@ -54,7 +54,7 @@
                 "parser",
                 "php"
             ],
-            "time": "2021-07-11T15:24:33+00:00"
+            "time": "2021-07-12T12:29:35+00:00"
         },
         {
             "name": "psr/container",

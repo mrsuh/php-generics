@@ -2,11 +2,14 @@
 
 namespace Mrsuh\PhpGenerics\Command;
 
-use Composer\Autoload\ClassLoader;
 use Composer\Command\BaseCommand;
 use Composer\Util\Filesystem;
 use Mrsuh\PhpGenerics\Autoload\AutoloadGenerator;
-use Mrsuh\PhpGenerics\Compiler\Compiler;
+use Mrsuh\PhpGenerics\Compiler\ClassFinder;
+use Mrsuh\PhpGenerics\Compiler\Engine;
+use Mrsuh\PhpGenerics\Compiler\Parser;
+use Mrsuh\PhpGenerics\Compiler\Printer;
+use Mrsuh\PhpGenerics\Compiler\Result;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Finder\Finder;
@@ -42,24 +45,7 @@ class DumpCommand extends BaseCommand
         $basePath   = $filesystem->normalizePath(realpath(realpath(getcwd())));
         $vendorPath = $filesystem->normalizePath(realpath(realpath($config->get('vendor-dir'))));
 
-        $classLoader = new ClassLoader();
-        foreach ($autoloads['psr-4'] as $namespace => $paths) {
-            $exportedPaths = [];
-            foreach ($paths as $path) {
-                $exportedPaths[] = $autoloadGenerator->getAbsolutePath($filesystem, $basePath, $vendorPath, $path);
-            }
-
-            $classLoader->setPsr4($namespace, $exportedPaths);
-        }
-
-        foreach ($autoloads['psr-0'] as $namespace => $paths) {
-            $exportedPaths = [];
-            foreach ($paths as $path) {
-                $exportedPaths[] = $autoloadGenerator->getAbsolutePath($filesystem, $basePath, $vendorPath, $path);
-            }
-
-            $classLoader->set($namespace, $exportedPaths);
-        }
+        $classFinder = new ClassFinder($autoloads, $autoloadGenerator, $filesystem, $basePath, $vendorPath);
 
         foreach ($autoloads['psr-4'] as $paths) {
             if (count($paths) !== 2) {
@@ -75,20 +61,38 @@ class DumpCommand extends BaseCommand
 
             $filesystem->ensureDirectoryExists($cacheDir);
 
-            $compiler = new Compiler($classLoader, $filesystem, $cacheDir);
+            $engine  = new Engine($classFinder);
+            $printer = new Printer();
 
             $finder      = new Finder();
             $sourceFiles = $finder->in($sourceDir)->name('*.php')->files();
-            $filesCount  = 0;
+            /** @var Result[] $results */
+            $filesCount = 0;
             foreach ($sourceFiles as $sourceFile) {
                 $filePath = $sourceFile->getRealPath();
 
-                if ($compiler->needToHandle($filePath)) {
-                    if ($this->getIO()->isVerbose()) {
-                        $this->getIO()->write('<info>File:</info>' . $filePath);
-                    }
-                    $compiler->handle($filePath);
+                if ($engine->needToHandle($filePath)) {
+                    $result = $engine->handle($filePath);
+
+                    $usageFilePath = Parser::getRelativeDir($result->getUsageClass()->fqn, $classFinder);
+                    $filesystem->ensureDirectoryExists(dirname($usageFilePath));
+                    file_put_contents($usageFilePath, $printer->printFile($result->getUsageClass()->ast));
                     $filesCount++;
+
+                    if ($this->getIO()->isVerbose()) {
+                        $this->getIO()->write(sprintf('<info>%s</info> => <comment>%s</comment>', $result->getUsageClass()->fqn, $usageFilePath));
+                    }
+
+                    foreach ($result->getGenericClasses() as $genericClass) {
+                        $genericFilePath = Parser::getRelativeDir($genericClass->fqn, $classFinder);
+                        $filesystem->ensureDirectoryExists(dirname($genericFilePath));
+                        file_put_contents($genericFilePath, $printer->printFile($genericClass->ast));
+                        $filesCount++;
+
+                        if ($this->getIO()->isVerbose()) {
+                            $this->getIO()->write(sprintf('<info>%s</info> => <comment>%s</comment>', $genericClass->fqn, $genericFilePath));
+                        }
+                    }
                 }
             }
         }

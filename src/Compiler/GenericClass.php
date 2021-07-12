@@ -10,24 +10,13 @@ use PhpParser\Node\Stmt\Property;
 
 class GenericClass
 {
-    private string $fqn;
-    private string $filePath;
     private string $name;
     private string $namespace;
-    private string $content = '';
     private array  $ast;
 
-    public function __construct(string $fqn, string $filePath)
+    public function __construct(string $content)
     {
-        $this->fqn      = $fqn;
-        $this->filePath = $filePath;
-        $this->content  = file_get_contents($filePath);
-        $this->parse();
-    }
-
-    private function parse()
-    {
-        $this->ast = Parser::parse($this->content);
+        $this->ast = Parser::parse($content);
 
         /** @var Namespace_ $namespaceNode */
         $namespaceNode   = Parser::filterOne($this->ast, Namespace_::class);
@@ -51,6 +40,11 @@ class GenericClass
     public function generateConcreteClassFqn(array $genericTypes): string
     {
         return $this->namespace . '\\' . $this->generateConcreteClassName($genericTypes);
+    }
+
+    public function getAst(): array
+    {
+        return $this->ast;
     }
 
     public function generateConcreteClassAst(array $genericTypes): array
