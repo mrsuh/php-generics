@@ -70,9 +70,10 @@ class DumpCommand extends BaseCommand
             $filesCount = 0;
             foreach ($sourceFiles as $sourceFile) {
                 $filePath = $sourceFile->getRealPath();
+                $content  = file_get_contents($filePath);
 
-                if ($engine->needToHandle($filePath)) {
-                    $result = $engine->handle($filePath);
+                if ($engine->needToHandle($content)) {
+                    $result = $engine->handle($content);
 
                     $usageFilePath = Parser::getRelativeDir($result->getUsageClass()->fqn, $classFinder);
                     $filesystem->ensureDirectoryExists(dirname($usageFilePath));
