@@ -94,8 +94,6 @@ class Compiler
 
             file_put_contents($concreteClassFilePath, $concreteClassContent);
 
-            include $concreteClassFilePath;
-
             $newExprNode->class->parts[count($newExprNode->class->parts) - 1] = $concreteClassName;
 
             /** @var Use_ $useNode */
@@ -106,7 +104,5 @@ class Compiler
         $newFilePath = $this->cacheDir . DIRECTORY_SEPARATOR . $className . '.php';
 
         file_put_contents($newFilePath, Parser::build($nodes));
-
-        include $newFilePath;
     }
 }

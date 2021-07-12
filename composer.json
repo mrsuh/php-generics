@@ -6,7 +6,7 @@
         "psr-4": {"Mrsuh\\PhpGenerics\\": "src/"}
     },
     "extra": {
-        "class": "Mrsuh\\PhpGenerics\\Command\\DumpCommand"
+        "class": "Mrsuh\\PhpGenerics\\Plugin\\ComposerPlugin"
     },
     "require": {
         "php": ">=7.4",
