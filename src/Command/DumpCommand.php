@@ -69,8 +69,7 @@ class DumpCommand extends BaseCommand
             /** @var Result[] $results */
             $filesCount = 0;
             foreach ($sourceFiles as $sourceFile) {
-                $filePath = $sourceFile->getRealPath();
-                $content  = file_get_contents($filePath);
+                $content = file_get_contents($sourceFile->getRealPath());
 
                 if ($engine->needToHandle($content)) {
                     $result = $engine->handle($content);
