@@ -6,6 +6,7 @@ use PhpParser\Lexer\Emulative;
 use PhpParser\Node;
 use PhpParser\NodeFinder;
 use PhpParser\NodeTraverser;
+use PhpParser\NodeVisitor\CloningVisitor;
 use PhpParser\NodeVisitor\NameResolver;
 use PhpParser\ParserFactory;
 use PhpParser\PrettyPrinter\Standard;
@@ -45,7 +46,7 @@ class Parser
         });
     }
 
-    public static function filterOne(array $nodes, $class): ?Node
+    public static function filterOne(array $nodes, string $class): ?Node
     {
         $nodes = (new NodeFinder())->find($nodes, function (Node $node) use ($class): bool {
             if ($node instanceof $class) {
@@ -73,7 +74,7 @@ class Parser
         return $prettyPrinter->prettyPrintFile($nodes) . PHP_EOL;
     }
 
-    public static function getRelativeFilePath(string $fqn, ClassFinder $classLoader): string
+    public static function getRelativeFilePath(string $fqn, ClassFinderInterface $classLoader): string
     {
         $psr4Prefixes = $classLoader->getPrefixesPsr4();
         foreach (array_keys($psr4Prefixes) as $namespace) {
@@ -83,7 +84,24 @@ class Parser
         return str_replace('\\', DIRECTORY_SEPARATOR, $fqn) . '.php';
     }
 
-    public static function setNodeName(Node &$node, string $name): void
+    public static function getNodeName(Node $node, ClassFinderInterface $classFinder): string
+    {
+        switch (true) {
+            case $node instanceof Node\Name:
+                $fqn = $node->toString();
+                if ($classFinder->isFileExistsByClassFqn($fqn)) {
+                    return $fqn;
+                }
+
+                return (string)$node->getAttribute('originalName');
+            case $node instanceof Node\Identifier:
+                return (string)$node->name;
+        }
+
+        return '';
+    }
+
+    public static function setNodeName(Node &$node, string $type): void
     {
         $builtinTypes = [
             'bool'     => true,
@@ -91,32 +109,74 @@ class Parser
             'float'    => true,
             'string'   => true,
             'iterable' => true,
-            'void'     => true,
             'object'   => true,
-            'null'     => true,
-            'false'    => true,
             'mixed'    => true,
-            'never'    => true,
+            'array'    => true,
         ];
 
         switch (true) {
             case $node instanceof Node\Name:
-                if (isset($builtinTypes[strtolower($name)])) {
-                    $node = new Node\Identifier($name);
+                $parts = explode('\\', $type);
+                if (isset($builtinTypes[strtolower($type)]) || count($parts) === 1) {
+                    $node = new Node\Identifier($type);
                 } else {
-                    $node->parts = explode('\\', $name);
+                    $node->parts = $parts;
                 }
                 break;
             case $node instanceof Node\Identifier:
-                $node->name = $name;
-                break;
-            case $node instanceof Node\NullableType:
-                self::setNodeName($node->type, $name);
-                break;
-            case $node instanceof Node\UnionType:
-                //@todo
+                $node->name = $type;
                 break;
         }
+    }
+
+    public static function setTypes(Node &$node, array $map, ClassFinderInterface $classFinder): void
+    {
+        switch (true) {
+            case $node instanceof Node\Name:
+            case $node instanceof Node\Identifier:
+                foreach ($map as $placeholder => $newType) {
+                    $currentType = self::getNodeName($node, $classFinder);
+
+                    if ($placeholder !== $currentType) {
+                        continue;
+                    }
+
+                    self::setNodeName($node, $newType);
+                }
+
+                break;
+            case $node instanceof Node\NullableType:
+                $currentType = self::getNodeName($node->type, $classFinder);
+                foreach ($map as $placeholder => $newType) {
+                    if ($placeholder !== $currentType) {
+                        continue;
+                    }
+
+                    self::setNodeName($node->type, $newType);
+                }
+
+                break;
+            case $node instanceof Node\UnionType:
+                foreach ($node->types as &$typeNode) {
+                    $currentType = self::getNodeName($typeNode, $classFinder);
+                    foreach ($map as $placeholder => $newType) {
+                        if ($placeholder !== $currentType) {
+                            continue;
+                        }
+
+                        self::setNodeName($typeNode, $newType);
+                    }
+                }
+                break;
+        }
+    }
+
+    public static function cloneAst(array $ast): array
+    {
+        $nodeTraverser = new NodeTraverser();
+        $nodeTraverser->addVisitor(new CloningVisitor());
+
+        return $nodeTraverser->traverse($ast);
     }
 }
 

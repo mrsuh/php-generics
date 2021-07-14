@@ -23,7 +23,7 @@ class DumpCommand extends BaseCommand
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $this->getIO()->write('<info>Generating generic files</info>');
+        $this->getIO()->write('<info>Generating concrete classes</info>');
 
         $composer  = $this->getComposer();
         $localRepo = $composer->getRepositoryManager()->getLocalRepository();

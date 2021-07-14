@@ -2,136 +2,209 @@
 
 namespace Mrsuh\PhpGenerics\Compiler;
 
+use PhpParser\Node;
 use PhpParser\Node\GenericParameter;
-use PhpParser\Node\Identifier;
-use PhpParser\Node\Name;
-use PhpParser\Node\NullableType;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
+use PhpParser\Node\Stmt\Interface_;
 use PhpParser\Node\Stmt\Namespace_;
 use PhpParser\Node\Stmt\Property;
-use PhpParser\Node\UnionType;
+use PhpParser\Node\Stmt\Trait_;
 
 class GenericClass
 {
+    private ClassFinderInterface $classFinder;
+    private ConcreteClassCache   $concreteClassCache;
+
+    /** @var GenericParameter[] */
+    private array  $parameters;
     private string $name;
     private string $namespace;
     private array  $ast;
 
-    public function __construct(string $content)
+    public function __construct(ClassFinderInterface $classFinder, ConcreteClassCache $concreteClassCache, string $content)
     {
-        $this->ast = Parser::resolveNames(Parser::parse($content));
+        $this->classFinder        = $classFinder;
+        $this->concreteClassCache = $concreteClassCache;
+        $this->ast                = Parser::resolveNames(Parser::parse($content));
 
         /** @var Namespace_ $namespaceNode */
         $namespaceNode   = Parser::filterOne($this->ast, Namespace_::class);
         $this->namespace = $namespaceNode->name->toString();
 
+        $classNodes = Parser::filter($this->ast, [Class_::class, Interface_::class, Trait_::class]);
+
         /** @var Class_ $classNode */
-        $classNode  = Parser::filterOne($this->ast, Class_::class);
+        $classNode  = current($classNodes);
         $this->name = $classNode->name->toString();
+
+        /** @var GenericParameter[] $genericParameters */
+        $this->parameters = (array)$classNode->getAttribute('generics');
     }
 
-    public function generateConcreteClassName(array $genericTypes): string
+    public function generateConcreteClassName(array $genericsMap): string
     {
         $types = [];
-        foreach ($genericTypes as $genericsType) {
+        foreach (array_values($genericsMap) as $genericsType) {
             $types[] = ucfirst(str_replace('\\', '', $genericsType));
         }
 
         return $this->name . 'For' . implode('And', $types);
     }
 
-    public function generateConcreteClassFqn(array $genericTypes): string
+    public function generateConcreteClassFqn(array $genericsMap): string
     {
-        return $this->namespace . '\\' . $this->generateConcreteClassName($genericTypes);
+        return $this->namespace . '\\' . $this->generateConcreteClassName($genericsMap);
     }
 
-    public function generateConcreteClass(array $genericTypes): ConcreteClass
+    public function getGenericsTypeMap(array $genericTypes): array
     {
-        $ast   = $this->ast;
-        $nodes = Parser::filter($ast, [Class_::class]);
-
-        /** @var Class_ $classNode */
-        $classNode = current($nodes);
-
-        Parser::setNodeName($classNode->name, $this->generateConcreteClassName($genericTypes));
-
-        /** @var GenericParameter[] $genericParameters */
-        $genericParameters = (array)$classNode->getAttribute('generics');
-
-        $genericParameterNames = [];
-        foreach ($genericParameters as $genericParameter) {
-            $genericParameterName = (string)$genericParameter->name->getAttribute('originalName');
-            if (empty($genericParameterName)) {
-                echo 'empty $genericParameterName' . PHP_EOL;
-                break;
-            }
-            $genericParameterNames[] = $genericParameterName;
-        }
-
-        if (count($genericParameterNames) !== count($genericTypes)) {
+        if (count($genericTypes) > count($this->parameters)) {
             throw new \TypeError('Invalid types count');
         }
 
         $genericsMap = [];
-        foreach ($genericParameterNames as $index => $genericParameterName) {
-            $genericsMap[$genericParameterName] = $genericTypes[$index];
+        foreach ($this->parameters as $index => $genericParameter) {
+            $genericParameterName = Parser::getNodeName($genericParameter->name, $this->classFinder);
+
+            if (isset($genericTypes[$index])) {
+                $type = $genericTypes[$index];
+            } else {
+                $default = $genericParameter->default;
+                if ($default === null) {
+                    echo 'There is no default value for index ' . $index . PHP_EOL; //@todo
+                    exit;
+                }
+                $type = Parser::getNodeName($default, $this->classFinder);
+            }
+
+            if (empty($type)) {
+                echo 'Invalid type' . PHP_EOL; //@todo
+                exit;
+            }
+
+            $genericsMap[$genericParameterName] = $type;
+        }
+
+        return $genericsMap;
+    }
+
+    public function generateConcreteClass(array $concreteGenericsMap, Result $result): ConcreteClass
+    {
+        echo 'generateConcreteClass' . PHP_EOL;
+        var_dump($concreteGenericsMap);
+        echo 'generateConcreteClass' . PHP_EOL . PHP_EOL;
+        $ast        = Parser::cloneAst($this->ast);
+        $classNodes = Parser::filter($ast, [Class_::class, Interface_::class, Trait_::class]);
+
+        /** @var Class_ $classNode */
+        $classNode = current($classNodes);
+
+        $extendsNodes = [];
+        if ($classNode instanceof Class_ && $classNode->extends !== null) {
+            $extendsNodes = [$classNode->extends];
+        }
+
+        if ($classNode instanceof Interface_) {
+            $extendsNodes = $classNode->extends;
+        }
+
+        foreach ($extendsNodes as &$extendsNode) {
+            $this->handleClass($extendsNode, $concreteGenericsMap, $result);
+        }
+
+        if ($classNode instanceof Class_) {
+            foreach ($classNode->implements as &$implementsNode) {
+                $this->handleClass($implementsNode, $concreteGenericsMap, $result);
+            }
         }
 
         /** @var Property[] $propertyNodes */
         $propertyNodes = Parser::filter([$classNode], [Property::class]);
         foreach ($propertyNodes as $propertyNode) {
-            $propertyType = (string)$propertyNode->type->getAttribute('originalName');
-            if (!array_key_exists($propertyType, $genericsMap)) {
-                continue;
+            if ($propertyNode->type !== null) {
+                Parser::setTypes($propertyNode->type, $concreteGenericsMap, $this->classFinder);
             }
-
-            Parser::setNodeName($propertyNode->type, $genericsMap[$propertyType]);
         }
 
         /** @var ClassMethod[] $classMethodNodes */
         $classMethodNodes = Parser::filter([$classNode], [ClassMethod::class]);
         foreach ($classMethodNodes as $classMethodNode) {
             foreach ($classMethodNode->params as $param) {
-                $paramType = (string)$param->type->getAttribute('originalName');
-
-                if (!array_key_exists($paramType, $genericsMap)) {
-                    continue;
+                if ($param->type !== null) {
+                    Parser::setTypes($param->type, $concreteGenericsMap, $this->classFinder);
                 }
-
-                Parser::setNodeName($param->type, $genericsMap[$paramType]);
             }
 
             if ($classMethodNode->returnType === null) {
                 continue;
             }
 
-            $returnType     = '';
-            $returnTypeNode = $classMethodNode->returnType;
-            switch (true) {
-                case $returnTypeNode instanceof Identifier:
-                case $returnTypeNode instanceof Name:
-                    $returnType = (string)$returnTypeNode->getAttribute('originalName');
-                    break;
-                case $returnTypeNode instanceof NullableType:
-                    $returnType = (string)$returnTypeNode->type->getAttribute('originalName');
-                    break;
-                case $returnTypeNode instanceof UnionType:
-                    //@todo
-                    break;
+            if ($classMethodNode->returnType !== null) {
+                Parser::setTypes($classMethodNode->returnType, $concreteGenericsMap, $this->classFinder);
             }
-
-            if ($returnType === '' || !array_key_exists($returnType, $genericsMap)) {
-                continue;
-            }
-
-            Parser::setNodeName($classMethodNode->returnType, $genericsMap[$returnType]);
         }
 
+        Parser::setNodeName($classNode->name, $this->generateConcreteClassName($concreteGenericsMap));
+
         return new ConcreteClass(
-            $this->generateConcreteClassName($genericTypes),
-            $this->generateConcreteClassFqn($genericTypes),
+            $this->generateConcreteClassName($concreteGenericsMap),
+            $this->generateConcreteClassFqn($concreteGenericsMap),
             $ast
         );
+    }
+
+    private static function needToHandle(Node $node): bool
+    {
+        return is_array($node->getAttribute('generics'));
+    }
+
+    private function handleClass(Node &$node, array $genericsMap, Result $result): void
+    {
+        if (!self::needToHandle($node)) {
+            return;
+        }
+
+        $genericsTypes = $this->getGenericTypesByNodeAndMap($node, $genericsMap);
+
+        $implementsNodeClassContent = $this->classFinder->getFileContentByClassFqn(Parser::getNodeName($node, $this->classFinder));
+        $genericClass               = new self($this->classFinder, $this->concreteClassCache, $implementsNodeClassContent);
+
+        $concreteClassMap = $genericClass->getGenericsTypeMap($genericsTypes);
+        $concreteClassFqn = $genericClass->generateConcreteClassFqn($concreteClassMap);
+
+        if ($this->concreteClassCache->get($concreteClassFqn) === null) {
+            $concreteClass = $genericClass->generateConcreteClass($concreteClassMap, $result);
+            $result->addConcreteClass($concreteClass);
+            $this->concreteClassCache->set($concreteClassFqn, $concreteClass);
+        }
+        $concreteClass = $this->concreteClassCache->get($concreteClassFqn);
+
+        Parser::setNodeName($node, $concreteClass->fqn);
+    }
+
+    private function getGenericTypesByNodeAndMap(Node $node, array $map): array
+    {
+        /** @var GenericParameter[] $genericParameters */
+        $parameters = (array)$node->getAttribute('generics');
+
+        if (count($parameters) > count($map)) {
+            throw new \TypeError('Invalid types count');
+        }
+
+        $types = [];
+        foreach ($parameters as $genericParameter) {
+            $genericParameterName = Parser::getNodeName($genericParameter->name, $this->classFinder);
+
+            if (isset($map[$genericParameterName])) {
+                $type = $map[$genericParameterName];
+            } else {
+                $type = $genericParameterName;
+            }
+
+            $types[] = $type;
+        }
+
+        return $types;
     }
 }

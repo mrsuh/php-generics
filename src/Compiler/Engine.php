@@ -2,6 +2,7 @@
 
 namespace Mrsuh\PhpGenerics\Compiler;
 
+use PhpParser\Node;
 use PhpParser\Node\Expr\ClassConstFetch;
 use PhpParser\Node\Expr\New_;
 use PhpParser\Node\GenericParameter;
@@ -10,11 +11,17 @@ use PhpParser\Node\Stmt\Namespace_;
 
 class Engine
 {
-    private ClassFinder $classFinder;
+    private ClassFinderInterface $classFinder;
 
-    public function __construct(ClassFinder $classFinder)
+    /** @var GenericClass[] */
+    private array $genericClasses = [];
+
+    private ConcreteClassCache $concreteClassCache;
+
+    public function __construct(ClassFinderInterface $classFinder)
     {
-        $this->classFinder = $classFinder;
+        $this->concreteClassCache = new ConcreteClassCache();
+        $this->classFinder        = $classFinder;
     }
 
     public function needToHandle(string $classFileContent): bool
@@ -25,7 +32,16 @@ class Engine
         $newExprNodes = Parser::filter($nodes, [New_::class]);
         foreach ($newExprNodes as $newExprNode) {
             $generics = $newExprNode->class->getAttribute('generics');
-            if (is_array($generics) && count($generics) > 0) {
+            if (is_array($generics)) {
+                return true;
+            }
+        }
+
+        /** @var ClassConstFetch[] $classConstFetchStmtNodes */
+        $classConstFetchStmtNodes = Parser::filter($nodes, [ClassConstFetch::class]);
+        foreach ($classConstFetchStmtNodes as $classConstFetchStmtNode) {
+            $generics = $classConstFetchStmtNode->class->getAttribute('generics');
+            if (is_array($generics)) {
                 return true;
             }
         }
@@ -41,60 +57,14 @@ class Engine
 
         /** @var New_[] $newExprNodes */
         $newExprNodes = Parser::filter($nodes, [New_::class]);
-        foreach ($newExprNodes as $newExprNode) {
-            /** @var GenericParameter[] $genericParameters */
-            $genericParameters = $newExprNode->class->getAttribute('generics');
-            if (!is_array($genericParameters)) {
-                continue;
-            }
-
-            $genericTypes = [];
-            foreach ($genericParameters as $genericParameter) {
-                $genericTypes[] = (string)$genericParameter->name->getAttribute('originalName');
-            }
-
-            $genericClassFqn         = $newExprNode->class->toString();
-            $genericClassFileContent = $this->classFinder->getFileContentByClassFqn($genericClassFqn);
-            if ($genericClassFileContent === '') {
-                echo 'Empty file err' . PHP_EOL; //@todo
-                continue;
-            }
-
-            $genericClass = new GenericClass($genericClassFileContent);
-
-            $concreteClass = $genericClass->generateConcreteClass($genericTypes);
-            $result->addConcreteClass($concreteClass);
-
-            Parser::setNodeName($newExprNode->class, $concreteClass->fqn);
+        foreach ($newExprNodes as &$newExprNode) {
+            $this->handleNode($newExprNode, $result);
         }
 
         /** @var ClassConstFetch[] $classConstFetchStmtNodes */
         $classConstFetchStmtNodes = Parser::filter($nodes, [ClassConstFetch::class]);
-        foreach ($classConstFetchStmtNodes as $classConstFetchStmtNode) {
-            /** @var GenericParameter[] $genericParameters */
-            $genericParameters = $classConstFetchStmtNode->class->getAttribute('generics');
-            if (!is_array($genericParameters)) {
-                continue;
-            }
-
-            $genericTypes = [];
-            foreach ($genericParameters as $genericParameter) {
-                $genericTypes[] = (string)$genericParameter->name->getAttribute('originalName');
-            }
-
-            $genericClassFqn         = $classConstFetchStmtNode->class->toString();
-            $genericClassFileContent = $this->classFinder->getFileContentByClassFqn($genericClassFqn);
-            if ($genericClassFileContent === '') {
-                echo 'Empty file err' . PHP_EOL; //@todo
-                continue;
-            }
-
-            $genericClass = new GenericClass($genericClassFileContent);
-
-            $concreteClass = $genericClass->generateConcreteClass($genericTypes);
-            $result->addConcreteClass($concreteClass);
-
-            Parser::setNodeName($classConstFetchStmtNode->class, $concreteClass->fqn);
+        foreach ($classConstFetchStmtNodes as &$classConstFetchStmtNode) {
+            $this->handleNode($classConstFetchStmtNode, $result);
         }
 
         /** @var Namespace_ $namespaceNode */
@@ -112,5 +82,48 @@ class Engine
         ));
 
         return $result;
+    }
+
+    /**
+     * @param New_|ClassConstFetch $node
+     * @param Result               $result
+     */
+    private function handleNode(Node &$node, Result &$result): void
+    {
+        /** @var GenericParameter[] $genericParameters */
+        $genericParameters = $node->class->getAttribute('generics');
+        if (!is_array($genericParameters)) {
+            return;
+        }
+
+        $genericTypes = [];
+        foreach ($genericParameters as $genericParameter) {
+            $genericTypes[] = Parser::getNodeName($genericParameter->name, $this->classFinder);
+        }
+
+        $genericClassFqn = $node->class->toString();
+        if (!array_key_exists($genericClassFqn, $this->genericClasses)) {
+            $genericClassFileContent = $this->classFinder->getFileContentByClassFqn($genericClassFqn);
+            if ($genericClassFileContent === '') {
+                echo 'Empty file err' . PHP_EOL; //@todo
+
+                return;
+            }
+
+            $this->genericClasses[$genericClassFqn] = new GenericClass($this->classFinder, $this->concreteClassCache, $genericClassFileContent);
+        }
+
+        $genericClass = $this->genericClasses[$genericClassFqn];
+
+        $genericTypesMap = $genericClass->getGenericsTypeMap($genericTypes);
+
+        $concreteClassFqn = $genericClass->generateConcreteClassFqn($genericTypes);
+        if ($this->concreteClassCache->get($concreteClassFqn) === null) {
+            $concreteClass = $genericClass->generateConcreteClass($genericTypesMap, $result);
+            $result->addConcreteClass($concreteClass);
+            $this->concreteClassCache->set($concreteClassFqn, $concreteClass);
+        }
+
+        Parser::setNodeName($node->class, $concreteClassFqn);
     }
 }

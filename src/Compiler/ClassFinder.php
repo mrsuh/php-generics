@@ -4,7 +4,7 @@ namespace Mrsuh\PhpGenerics\Compiler;
 
 use Composer\Autoload\ClassLoader;
 
-class ClassFinder
+class ClassFinder implements ClassFinderInterface
 {
     private ClassLoader $classLoader;
 
@@ -28,6 +28,11 @@ class ClassFinder
 
             $this->classLoader->set($namespace, $exportedPaths);
         }
+    }
+
+    public function isFileExistsByClassFqn(string $fqn): bool
+    {
+        return !empty($this->classLoader->findFile($fqn));
     }
 
     public function getFileContentByClassFqn(string $fqn): string
