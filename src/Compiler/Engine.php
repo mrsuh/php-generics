@@ -31,7 +31,7 @@ class Engine
         /** @var New_[] $newExprNodes */
         $newExprNodes = Parser::filter($nodes, [New_::class]);
         foreach ($newExprNodes as $newExprNode) {
-            $generics = $newExprNode->class->getAttribute('generics');
+            $generics = Parser::getGenericParameters($newExprNode->class);
             if (is_array($generics)) {
                 return true;
             }
@@ -40,9 +40,24 @@ class Engine
         /** @var ClassConstFetch[] $classConstFetchStmtNodes */
         $classConstFetchStmtNodes = Parser::filter($nodes, [ClassConstFetch::class]);
         foreach ($classConstFetchStmtNodes as $classConstFetchStmtNode) {
-            $generics = $classConstFetchStmtNode->class->getAttribute('generics');
+            $generics = Parser::getGenericParameters($classConstFetchStmtNode->class);
             if (is_array($generics)) {
                 return true;
+            }
+        }
+
+        /** @var Class_ $classNode */
+        $classNode = Parser::filterOne($nodes, Class_::class);
+        if ($classNode !== null && !is_array(Parser::getGenericParameters($classNode))) {
+            /** @var Node\Stmt\TraitUse[] $traitUseNodes */
+            $traitUseNodes = Parser::filter([$classNode], [Node\Stmt\TraitUse::class]);
+            foreach ($traitUseNodes as $traitUseNode) {
+                foreach ($traitUseNode->traits as $traitNode) {
+                    $generics = Parser::getGenericParameters($traitNode);
+                    if (is_array($generics)) {
+                        return true;
+                    }
+                }
             }
         }
 
@@ -57,14 +72,24 @@ class Engine
 
         /** @var New_[] $newExprNodes */
         $newExprNodes = Parser::filter($nodes, [New_::class]);
-        foreach ($newExprNodes as &$newExprNode) {
-            $this->handleNode($newExprNode, $result);
+        foreach ($newExprNodes as $newExprNode) {
+            $classNode = $newExprNode->class;
+            $this->handleNode($classNode, $result);
         }
 
         /** @var ClassConstFetch[] $classConstFetchStmtNodes */
         $classConstFetchStmtNodes = Parser::filter($nodes, [ClassConstFetch::class]);
-        foreach ($classConstFetchStmtNodes as &$classConstFetchStmtNode) {
-            $this->handleNode($classConstFetchStmtNode, $result);
+        foreach ($classConstFetchStmtNodes as $classConstFetchStmtNode) {
+            $classNode = $classConstFetchStmtNode->class;
+            $this->handleNode($classNode, $result);
+        }
+
+        /** @var Node\Stmt\TraitUse[] $traitUseNodes */
+        $traitUseNodes = Parser::filter($nodes, [Node\Stmt\TraitUse::class]);
+        foreach ($traitUseNodes as $traitUseNode) {
+            foreach ($traitUseNode->traits as $traitNode) {
+                $this->handleNode($traitNode, $result);
+            }
         }
 
         /** @var Namespace_ $namespaceNode */
@@ -85,13 +110,13 @@ class Engine
     }
 
     /**
-     * @param New_|ClassConstFetch $node
-     * @param Result               $result
+     * @param Node\Name $node
+     * @param Result    $result
      */
-    private function handleNode(Node &$node, Result &$result): void
+    private function handleNode(Node $node, Result &$result): void
     {
         /** @var GenericParameter[] $genericParameters */
-        $genericParameters = $node->class->getAttribute('generics');
+        $genericParameters = Parser::getGenericParameters($node);
         if (!is_array($genericParameters)) {
             return;
         }
@@ -101,7 +126,7 @@ class Engine
             $genericTypes[] = Parser::getNodeName($genericParameter->name, $this->classFinder);
         }
 
-        $genericClassFqn = $node->class->toString();
+        $genericClassFqn = $node->toString();
         if (!array_key_exists($genericClassFqn, $this->genericClasses)) {
             $genericClassFileContent = $this->classFinder->getFileContentByClassFqn($genericClassFqn);
             if ($genericClassFileContent === '') {
@@ -125,6 +150,6 @@ class Engine
             $this->concreteClassCache->set($concreteClassFqn, $concreteClass);
         }
 
-        Parser::setNodeName($node->class, $concreteClassFqn);
+        Parser::setNodeName($node, $concreteClassFqn);
     }
 }

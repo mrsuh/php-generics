@@ -178,5 +178,10 @@ class Parser
 
         return $nodeTraverser->traverse($ast);
     }
+
+    public static function getGenericParameters(Node $node): ?array
+    {
+        return $node->getAttribute('generics');
+    }
 }
 

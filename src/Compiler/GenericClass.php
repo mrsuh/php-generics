@@ -39,7 +39,7 @@ class GenericClass
         $this->name = $classNode->name->toString();
 
         /** @var GenericParameter[] $genericParameters */
-        $this->parameters = (array)$classNode->getAttribute('generics');
+        $this->parameters = (array)Parser::getGenericParameters($classNode);
     }
 
     public function generateConcreteClassName(array $genericsMap): string
@@ -117,7 +117,7 @@ class GenericClass
         }
 
         /** @var Node\Stmt\TraitUse[] $traitUseNodes */
-        $traitUseNodes = Parser::filter($ast, [Node\Stmt\TraitUse::class]);
+        $traitUseNodes = Parser::filter([$classNode], [Node\Stmt\TraitUse::class]);
         foreach ($traitUseNodes as $traitUseNode) {
             foreach ($traitUseNode->traits as &$traitNode) {
                 $this->handleClass($traitNode, $concreteGenericsMap, $result);
@@ -161,7 +161,7 @@ class GenericClass
 
     private static function needToHandle(Node $node): bool
     {
-        return is_array($node->getAttribute('generics'));
+        return is_array(Parser::getGenericParameters($node));
     }
 
     private function handleClass(Node &$node, array $genericsMap, Result $result): void
@@ -191,7 +191,7 @@ class GenericClass
     private function getGenericTypesByNodeAndMap(Node $node, array $map): array
     {
         /** @var GenericParameter[] $genericParameters */
-        $parameters = (array)$node->getAttribute('generics');
+        $parameters = (array)Parser::getGenericParameters($node);
 
         if (count($parameters) > count($map)) {
             throw new \TypeError('Invalid types count');
