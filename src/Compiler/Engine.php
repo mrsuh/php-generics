@@ -117,13 +117,14 @@ class Engine
 
         $genericTypesMap = $genericClass->getGenericsTypeMap($genericTypes);
 
-        $concreteClassFqn = $genericClass->generateConcreteClassFqn($genericTypes);
+        $concreteClassFqn = $genericClass->generateConcreteClassFqn($genericTypesMap);
+
         if ($this->concreteClassCache->get($concreteClassFqn) === null) {
             $concreteClass = $genericClass->generateConcreteClass($genericTypesMap, $result);
             $result->addConcreteClass($concreteClass);
             $this->concreteClassCache->set($concreteClassFqn, $concreteClass);
         }
 
-        Parser::setNodeName($node->class, $concreteClassFqn);
+        Parser::setNodeName($node->class, $concreteClass->fqn);
     }
 }
