@@ -91,9 +91,6 @@ class GenericClass
 
     public function generateConcreteClass(array $concreteGenericsMap, Result $result): ConcreteClass
     {
-        echo 'generateConcreteClass' . PHP_EOL;
-        var_dump($concreteGenericsMap);
-        echo 'generateConcreteClass' . PHP_EOL . PHP_EOL;
         $ast        = Parser::cloneAst($this->ast);
         $classNodes = Parser::filter($ast, [Class_::class, Interface_::class, Trait_::class]);
 
@@ -116,6 +113,14 @@ class GenericClass
         if ($classNode instanceof Class_) {
             foreach ($classNode->implements as &$implementsNode) {
                 $this->handleClass($implementsNode, $concreteGenericsMap, $result);
+            }
+        }
+
+        /** @var Node\Stmt\TraitUse[] $traitUseNodes */
+        $traitUseNodes = Parser::filter($ast, [Node\Stmt\TraitUse::class]);
+        foreach ($traitUseNodes as $traitUseNode) {
+            foreach ($traitUseNode->traits as &$traitNode) {
+                $this->handleClass($traitNode, $concreteGenericsMap, $result);
             }
         }
 
