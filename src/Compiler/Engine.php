@@ -2,6 +2,8 @@
 
 namespace Mrsuh\PhpGenerics\Compiler;
 
+use Mrsuh\PhpGenerics\Compiler\Cache\ConcreteClassCache;
+use Mrsuh\PhpGenerics\Compiler\Cache\GenericClassCache;
 use PhpParser\Node;
 use PhpParser\Node\Expr\ClassConstFetch;
 use PhpParser\Node\Expr\New_;

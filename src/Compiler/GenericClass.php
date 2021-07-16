@@ -2,6 +2,8 @@
 
 namespace Mrsuh\PhpGenerics\Compiler;
 
+use Mrsuh\PhpGenerics\Compiler\Cache\ConcreteClassCache;
+use Mrsuh\PhpGenerics\Compiler\Cache\GenericClassCache;
 use PhpParser\Node;
 use PhpParser\Node\GenericParameter;
 use PhpParser\Node\Stmt\Class_;
