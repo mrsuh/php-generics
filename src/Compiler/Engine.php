@@ -125,6 +125,6 @@ class Engine
             $this->concreteClassCache->set($concreteClassFqn, $concreteClass);
         }
 
-        Parser::setNodeName($node->class, $concreteClass->fqn);
+        Parser::setNodeName($node->class, $concreteClassFqn);
     }
 }
