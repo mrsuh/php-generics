@@ -3,6 +3,8 @@
 namespace Mrsuh\PhpGenerics\Compiler;
 
 use Composer\Autoload\ClassLoader;
+use Mrsuh\PhpGenerics\Exception\ClassNotFoundException;
+use Mrsuh\PhpGenerics\Exception\FileNotReadableException;
 
 class ClassFinder implements ClassFinderInterface
 {
@@ -35,14 +37,23 @@ class ClassFinder implements ClassFinderInterface
         return !empty($this->classLoader->findFile($fqn));
     }
 
+    /**
+     * @throws ClassNotFoundException
+     * @throws FileNotReadableException
+     */
     public function getFileContentByClassFqn(string $fqn): string
     {
         $filePath = $this->classLoader->findFile($fqn);
         if (!$filePath) {
-            return '';
+            throw new ClassNotFoundException('Can\'t find class file %s', $fqn);
         }
 
-        return file_get_contents($filePath);
+        $content = file_get_contents($filePath);
+        if ($content === false) {
+            throw new FileNotReadableException('Can\'t read class %s from file %s', $fqn, $filePath);
+        }
+
+        return $content;
     }
 
     public function getPrefixesPsr4(): array

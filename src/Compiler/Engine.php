@@ -12,15 +12,13 @@ use PhpParser\Node\Stmt\Namespace_;
 class Engine
 {
     private ClassFinderInterface $classFinder;
-
-    /** @var GenericClass[] */
-    private array $genericClasses = [];
-
-    private ConcreteClassCache $concreteClassCache;
+    private ConcreteClassCache   $concreteClassCache;
+    private GenericClassCache    $genericClassCache;
 
     public function __construct(ClassFinderInterface $classFinder)
     {
         $this->concreteClassCache = new ConcreteClassCache();
+        $this->genericClassCache  = new GenericClassCache();
         $this->classFinder        = $classFinder;
     }
 
@@ -121,30 +119,24 @@ class Engine
             return;
         }
 
+        $genericClassFqn = $node->toString();
+        if (!$this->genericClassCache->has($genericClassFqn)) {
+            $genericClassFileContent = $this->classFinder->getFileContentByClassFqn($genericClassFqn);
+            $this->genericClassCache->set($genericClassFqn, new GenericClass($this->classFinder, $this->concreteClassCache, $this->genericClassCache, $genericClassFileContent));
+        }
+
+        $genericClass = $this->genericClassCache->get($genericClassFqn);
+
         $genericTypes = [];
         foreach ($genericParameters as $genericParameter) {
             $genericTypes[] = Parser::getNodeName($genericParameter->name, $this->classFinder);
         }
 
-        $genericClassFqn = $node->toString();
-        if (!array_key_exists($genericClassFqn, $this->genericClasses)) {
-            $genericClassFileContent = $this->classFinder->getFileContentByClassFqn($genericClassFqn);
-            if ($genericClassFileContent === '') {
-                echo 'Empty file err' . PHP_EOL; //@todo
-
-                return;
-            }
-
-            $this->genericClasses[$genericClassFqn] = new GenericClass($this->classFinder, $this->concreteClassCache, $genericClassFileContent);
-        }
-
-        $genericClass = $this->genericClasses[$genericClassFqn];
-
         $genericTypesMap = $genericClass->getGenericsTypeMap($genericTypes);
 
         $concreteClassFqn = $genericClass->generateConcreteClassFqn($genericTypesMap);
 
-        if ($this->concreteClassCache->get($concreteClassFqn) === null) {
+        if (!$this->concreteClassCache->has($concreteClassFqn)) {
             $concreteClass = $genericClass->generateConcreteClass($genericTypesMap, $result);
             $result->addConcreteClass($concreteClass);
             $this->concreteClassCache->set($concreteClassFqn, $concreteClass);

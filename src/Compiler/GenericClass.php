@@ -15,6 +15,7 @@ class GenericClass
 {
     private ClassFinderInterface $classFinder;
     private ConcreteClassCache   $concreteClassCache;
+    private GenericClassCache    $genericClassCache;
 
     /** @var GenericParameter[] */
     private array  $parameters;
@@ -22,10 +23,11 @@ class GenericClass
     private string $namespace;
     private array  $ast;
 
-    public function __construct(ClassFinderInterface $classFinder, ConcreteClassCache $concreteClassCache, string $content)
+    public function __construct(ClassFinderInterface $classFinder, ConcreteClassCache $concreteClassCache, GenericClassCache $genericClassCache, string $content)
     {
         $this->classFinder        = $classFinder;
         $this->concreteClassCache = $concreteClassCache;
+        $this->genericClassCache  = $genericClassCache;
         $this->ast                = Parser::resolveNames(Parser::parse($content));
 
         /** @var Namespace_ $namespaceNode */
@@ -170,19 +172,24 @@ class GenericClass
             return;
         }
 
-        $genericsTypes = $this->getGenericTypesByNodeAndMap($node, $genericsMap);
+        $genericClassFqn = Parser::getNodeName($node, $this->classFinder);
+        if (!$this->genericClassCache->has($genericClassFqn)) {
+            $implementsNodeClassContent = $this->classFinder->getFileContentByClassFqn($genericClassFqn);
+            $this->genericClassCache->set($genericClassFqn, new self($this->classFinder, $this->concreteClassCache, $this->genericClassCache, $implementsNodeClassContent));
+        }
 
-        $implementsNodeClassContent = $this->classFinder->getFileContentByClassFqn(Parser::getNodeName($node, $this->classFinder));
-        $genericClass               = new self($this->classFinder, $this->concreteClassCache, $implementsNodeClassContent);
+        $genericClass = $this->genericClassCache->get($genericClassFqn);
 
+        $genericsTypes    = $this->getGenericTypesByNodeAndMap($node, $genericsMap);
         $concreteClassMap = $genericClass->getGenericsTypeMap($genericsTypes);
         $concreteClassFqn = $genericClass->generateConcreteClassFqn($concreteClassMap);
 
-        if ($this->concreteClassCache->get($concreteClassFqn) === null) {
+        if (!$this->concreteClassCache->has($concreteClassFqn)) {
             $concreteClass = $genericClass->generateConcreteClass($concreteClassMap, $result);
             $result->addConcreteClass($concreteClass);
             $this->concreteClassCache->set($concreteClassFqn, $concreteClass);
         }
+
         $concreteClass = $this->concreteClassCache->get($concreteClassFqn);
 
         Parser::setNodeName($node, $concreteClass->fqn);

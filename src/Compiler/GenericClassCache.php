@@ -2,16 +2,16 @@
 
 namespace Mrsuh\PhpGenerics\Compiler;
 
-class ConcreteClassCache
+class GenericClassCache
 {
     private array $data;
 
-    public function set(string $key, ConcreteClass $concreteClass): void
+    public function set(string $key, GenericClass $genericClass): void
     {
-        $this->data[$key] = $concreteClass;
+        $this->data[$key] = $genericClass;
     }
 
-    public function get(string $key): ?ConcreteClass
+    public function get(string $key): ?GenericClass
     {
         if (isset($this->data[$key])) {
             return $this->data[$key];
