@@ -18,7 +18,10 @@ class DumpCommand extends BaseCommand
 {
     protected function configure()
     {
-        $this->setName('dump-generics');
+        $this
+            ->setName('dump-generics')
+            ->setDescription('Dumps the concrete class files from generics classes');
+
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
@@ -60,7 +63,7 @@ class DumpCommand extends BaseCommand
             $cacheDir  = $exportedPaths[0];
             $sourceDir = $exportedPaths[1];
 
-            $filesystem->ensureDirectoryExists($cacheDir);
+            $filesystem->emptyDirectory($cacheDir);
 
             $engine  = new Engine($classFinder);
             $printer = new Printer();
@@ -73,7 +76,7 @@ class DumpCommand extends BaseCommand
                 $content = file_get_contents($sourceFile->getRealPath());
 
                 if ($content === '') {
-                    $this->getIO()->error('Cant read file ' . $sourceFile->getRealPath());
+                    $this->getIO()->error('Can\'t read file ' . $sourceFile->getRealPath());
                     continue;
                 }
 
@@ -87,7 +90,7 @@ class DumpCommand extends BaseCommand
                         $filesCount++;
 
                         if ($this->getIO()->isVerbose()) {
-                            $this->getIO()->write(sprintf('<info>%s</info>', $concreteClass->fqn));
+                            $this->getIO()->write(sprintf('  - %s', $concreteClass->fqn));
                         }
                     }
                 }
