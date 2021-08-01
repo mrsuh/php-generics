@@ -25,7 +25,12 @@ class GenericClass
     private string $namespace;
     private array  $ast;
 
-    public function __construct(ClassFinderInterface $classFinder, ConcreteClassCache $concreteClassCache, GenericClassCache $genericClassCache, string $content)
+    public function __construct(
+        ClassFinderInterface $classFinder,
+        ConcreteClassCache $concreteClassCache,
+        GenericClassCache $genericClassCache,
+        string $content
+    )
     {
         $this->classFinder        = $classFinder;
         $this->concreteClassCache = $concreteClassCache;
@@ -76,15 +81,13 @@ class GenericClass
             } else {
                 $default = $genericParameter->default;
                 if ($default === null) {
-                    echo 'There is no default value for index ' . $index . PHP_EOL; //@todo
-                    exit;
+                    throw new \TypeError('There is no default value for index ' . $index);//@todo
                 }
                 $type = Parser::getNodeName($default, $this->classFinder);
             }
 
             if (empty($type)) {
-                echo 'Invalid type' . PHP_EOL; //@todo
-                exit;
+                throw new \TypeError('Empty type');//@todo
             }
 
             $genericsMap[$genericParameterName] = $type;
@@ -149,9 +152,12 @@ class GenericClass
                 continue;
             }
 
-            if ($classMethodNode->returnType !== null) {
-                Parser::setTypes($classMethodNode->returnType, $concreteGenericsMap, $this->classFinder);
+            if (self::needToHandle($classMethodNode->returnType)) {
+                $this->handleClass($classMethodNode->returnType, $concreteGenericsMap, $result);
+                continue;
             }
+
+            Parser::setTypes($classMethodNode->returnType, $concreteGenericsMap, $this->classFinder);
         }
 
         Parser::setNodeName($classNode->name, $this->generateConcreteClassName($concreteGenericsMap));
