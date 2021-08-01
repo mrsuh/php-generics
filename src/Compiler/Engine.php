@@ -122,15 +122,13 @@ class Engine
         /** @var New_[] $newExprNodes */
         $newExprNodes = Parser::filter($nodes, [New_::class]);
         foreach ($newExprNodes as $newExprNode) {
-            $classNode = $newExprNode->class;
-            $this->handleNode($classNode, $result);
+            $this->handleNode($newExprNode->class, $result);
         }
 
         /** @var ClassConstFetch[] $classConstFetchStmtNodes */
         $classConstFetchStmtNodes = Parser::filter($nodes, [ClassConstFetch::class]);
         foreach ($classConstFetchStmtNodes as $classConstFetchStmtNode) {
-            $classNode = $classConstFetchStmtNode->class;
-            $this->handleNode($classNode, $result);
+            $this->handleNode($classConstFetchStmtNode->class, $result);
         }
 
         /** @var Node\Stmt\TraitUse[] $traitUseNodes */
@@ -169,8 +167,6 @@ class Engine
         $namespaceNode = Parser::filterOne($nodes, Namespace_::class);
         $namespace     = $namespaceNode->name->toString();
 
-        /** @var Class_ $classNode */
-        $classNode = Parser::filterOne($nodes, Class_::class);
         $className = $classNode->name->toString();
 
         $result->addConcreteClass(new ConcreteClass(
