@@ -93,7 +93,11 @@ class Parser
                     return $fqn;
                 }
 
-                return (string)$node->getAttribute('originalName');
+                if ($node->hasAttribute('originalName')) {
+                    return (string)$node->getAttribute('originalName');
+                }
+
+                return $fqn;
             case $node instanceof Node\Identifier:
                 return (string)$node->name;
         }

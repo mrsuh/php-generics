@@ -45,12 +45,12 @@ class ClassFinder implements ClassFinderInterface
     {
         $filePath = $this->classLoader->findFile($fqn);
         if (!$filePath) {
-            throw new ClassNotFoundException('Can\'t find class file %s', $fqn);
+            throw new ClassNotFoundException(sprintf('Can\'t find class file %s', $fqn));
         }
 
         $content = file_get_contents($filePath);
         if ($content === false) {
-            throw new FileNotReadableException('Can\'t read class %s from file %s', $fqn, $filePath);
+            throw new FileNotReadableException(sprintf('Can\'t read class %s from file %s', $fqn, $filePath));
         }
 
         return $content;

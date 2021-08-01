@@ -3,7 +3,17 @@
     "type": "composer-plugin",
     "license": "MIT",
     "autoload": {
-        "psr-4": {"Mrsuh\\PhpGenerics\\": "src/"}
+        "psr-4": {
+            "Mrsuh\\PhpGenerics\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "MyNamespace\\": [
+                "tests/cache/",
+                "tests/src/"
+            ]
+        }
     },
     "extra": {
         "class": "Mrsuh\\PhpGenerics\\Plugin\\ComposerPlugin"
