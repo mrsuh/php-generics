@@ -5,6 +5,7 @@ namespace Mrsuh\PhpGenerics\Compiler;
 use Mrsuh\PhpGenerics\Compiler\Cache\ConcreteClassCache;
 use Mrsuh\PhpGenerics\Compiler\Cache\GenericClassCache;
 use PhpParser\Node;
+use PhpParser\Node\Expr\Instanceof_;
 use PhpParser\Node\GenericParameter;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
@@ -158,6 +159,16 @@ class GenericClass
             }
 
             Parser::setTypes($classMethodNode->returnType, $concreteGenericsMap, $this->classFinder);
+        }
+
+        /** @var Instanceof_[] $newExprNodes */
+        $instanceofExprNodes = Parser::filter([$classNode], [Instanceof_::class]);
+        foreach ($instanceofExprNodes as $instanceofExprNode) {
+            if (self::needToHandle($instanceofExprNode->class)) {
+                $this->handleClass($instanceofExprNode->class, $concreteGenericsMap, $result);
+            } else {
+                Parser::setTypes($instanceofExprNode->class, $concreteGenericsMap, $this->classFinder);
+            }
         }
 
         Parser::setNodeName($classNode->name, $this->generateConcreteClassName($concreteGenericsMap));

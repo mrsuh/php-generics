@@ -7,6 +7,7 @@ use Mrsuh\PhpGenerics\Compiler\Cache\GenericClassCache;
 use PhpParser\Node;
 use PhpParser\Node\Expr\ClassConstFetch;
 use PhpParser\Node\Expr\New_;
+use PhpParser\Node\Expr\Instanceof_;
 use PhpParser\Node\GenericParameter;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
@@ -123,6 +124,12 @@ class Engine
         $newExprNodes = Parser::filter($nodes, [New_::class]);
         foreach ($newExprNodes as $newExprNode) {
             $this->handleNode($newExprNode->class, $result);
+        }
+
+        /** @var Instanceof_[] $newExprNodes */
+        $instanceofExprNodes = Parser::filter($nodes, [Instanceof_::class]);
+        foreach ($instanceofExprNodes as $instanceofExprNode) {
+            $this->handleNode($instanceofExprNode->class, $result);
         }
 
         /** @var ClassConstFetch[] $classConstFetchStmtNodes */
