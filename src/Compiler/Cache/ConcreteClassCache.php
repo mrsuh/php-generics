@@ -6,7 +6,7 @@ use Mrsuh\PhpGenerics\Compiler\ConcreteClass;
 
 class ConcreteClassCache
 {
-    private array $data;
+    private array $data = [];
 
     public function set(string $key, ConcreteClass $concreteClass): void
     {

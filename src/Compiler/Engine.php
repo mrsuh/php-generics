@@ -88,9 +88,14 @@ class Engine
 
     public function handle(string $classFileContent): Result
     {
-        $nodes = Parser::resolveNames(Parser::parse($classFileContent));
-
         $result = new Result();
+
+//        $genericClass = new GenericClass($this->classFinder, $this->concreteClassCache, $this->genericClassCache, $classFileContent);
+//        $genericClass->generateConcreteClass([], $result);
+//
+//        return $result;
+
+        $nodes = Parser::resolveNames(Parser::parse($classFileContent));
 
         /** @var Node\Stmt\ClassLike $classNode */
         $classNode = Parser::filterOne($nodes, [Class_::class, Interface_::class, Trait_::class]);
@@ -204,16 +209,16 @@ class Engine
             $genericTypes[] = Parser::getNodeName($genericParameter->name, $this->classFinder);
         }
 
-        $genericTypesMap = $genericClass->getGenericsTypeMap($genericTypes);
+        $concreteClassCacheKey = $genericClass->getConcreteClassCacheKey($genericTypes);
 
-        $concreteClassFqn = $genericClass->generateConcreteClassFqn($genericTypesMap);
-
-        if (!$this->concreteClassCache->has($concreteClassFqn)) {
-            $concreteClass = $genericClass->generateConcreteClass($genericTypesMap, $result);
+        if (!$this->concreteClassCache->has($concreteClassCacheKey)) {
+            $concreteClass = $genericClass->generateConcreteClass($genericTypes, $result);
             $result->addConcreteClass($concreteClass);
-            $this->concreteClassCache->set($concreteClassFqn, $concreteClass);
+            $this->concreteClassCache->set($concreteClassCacheKey, $concreteClass);
         }
 
-        Parser::setNodeName($node, $concreteClassFqn);
+        $concreteClass = $this->concreteClassCache->get($concreteClassCacheKey);
+
+        Parser::setNodeName($node, $concreteClass->fqn);
     }
 }

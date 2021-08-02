@@ -6,7 +6,7 @@ use Mrsuh\PhpGenerics\Compiler\GenericClass;
 
 class GenericClassCache
 {
-    private array $data;
+    private array $data = [];
 
     public function set(string $key, GenericClass $genericClass): void
     {

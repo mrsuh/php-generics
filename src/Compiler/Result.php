@@ -5,7 +5,7 @@ namespace Mrsuh\PhpGenerics\Compiler;
 class Result
 {
     /** @var ConcreteClass[] */
-    private array $concreteClasses;
+    private array $concreteClasses = [];
 
     public function addConcreteClass(ConcreteClass $concreteClass): void
     {

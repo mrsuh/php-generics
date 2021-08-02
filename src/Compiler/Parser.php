@@ -94,9 +94,9 @@ class Parser
                 return $fqn;
             case $node instanceof Node\Identifier:
                 return (string)$node->name;
+            default:
+                throw new \TypeError('Invalid nodeName class %s', get_class($node));
         }
-
-        return '';
     }
 
     public static function setNodeName(Node &$node, string $type): void
@@ -127,12 +127,12 @@ class Parser
         }
     }
 
-    public static function setTypes(Node &$node, array $map, ClassFinderInterface $classFinder): void
+    public static function setTypes(Node &$node, GenericTypesMap $genericTypesMap, ClassFinderInterface $classFinder): void
     {
         switch (true) {
             case $node instanceof Node\Name:
             case $node instanceof Node\Identifier:
-                foreach ($map as $placeholder => $newType) {
+                foreach ($genericTypesMap->all() as $placeholder => $newType) {
                     $currentType = self::getNodeName($node, $classFinder);
 
                     if ($placeholder !== $currentType) {
@@ -145,7 +145,7 @@ class Parser
                 break;
             case $node instanceof Node\NullableType:
                 $currentType = self::getNodeName($node->type, $classFinder);
-                foreach ($map as $placeholder => $newType) {
+                foreach ($genericTypesMap->all() as $placeholder => $newType) {
                     if ($placeholder !== $currentType) {
                         continue;
                     }
@@ -157,7 +157,7 @@ class Parser
             case $node instanceof Node\UnionType:
                 foreach ($node->types as &$typeNode) {
                     $currentType = self::getNodeName($typeNode, $classFinder);
-                    foreach ($map as $placeholder => $newType) {
+                    foreach ($genericTypesMap->all() as $placeholder => $newType) {
                         if ($placeholder !== $currentType) {
                             continue;
                         }
