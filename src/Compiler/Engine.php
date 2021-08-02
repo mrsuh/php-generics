@@ -6,8 +6,8 @@ use Mrsuh\PhpGenerics\Compiler\Cache\ConcreteClassCache;
 use Mrsuh\PhpGenerics\Compiler\Cache\GenericClassCache;
 use PhpParser\Node;
 use PhpParser\Node\Expr\ClassConstFetch;
-use PhpParser\Node\Expr\New_;
 use PhpParser\Node\Expr\Instanceof_;
+use PhpParser\Node\Expr\New_;
 use PhpParser\Node\GenericParameter;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
@@ -197,7 +197,7 @@ class Engine
             return;
         }
 
-        $genericClassFqn = $node->toString();
+        $genericClassFqn = Parser::getNodeName($node, $this->classFinder);
         if (!$this->genericClassCache->has($genericClassFqn)) {
             $genericClassFileContent = $this->classFinder->getFileContentByClassFqn($genericClassFqn);
             $this->genericClassCache->set($genericClassFqn, new GenericClass($this->classFinder, $this->concreteClassCache, $this->genericClassCache, $genericClassFileContent));

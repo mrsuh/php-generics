@@ -193,8 +193,8 @@ class GenericClass
 
         $genericClassFqn = Parser::getNodeName($node, $this->classFinder);
         if (!$this->genericClassCache->has($genericClassFqn)) {
-            $implementsNodeClassContent = $this->classFinder->getFileContentByClassFqn($genericClassFqn);
-            $this->genericClassCache->set($genericClassFqn, new self($this->classFinder, $this->concreteClassCache, $this->genericClassCache, $implementsNodeClassContent));
+            $genericClassFileContent = $this->classFinder->getFileContentByClassFqn($genericClassFqn);
+            $this->genericClassCache->set($genericClassFqn, new self($this->classFinder, $this->concreteClassCache, $this->genericClassCache, $genericClassFileContent));
         }
 
         $genericClass = $this->genericClassCache->get($genericClassFqn);
@@ -209,9 +209,7 @@ class GenericClass
             $this->concreteClassCache->set($concreteClassFqn, $concreteClass);
         }
 
-        $concreteClass = $this->concreteClassCache->get($concreteClassFqn);
-
-        Parser::setNodeName($node, $concreteClass->fqn);
+        Parser::setNodeName($node, $concreteClassFqn);
     }
 
     private function getGenericTypesByNodeAndMap(Node $node, array $map): array
