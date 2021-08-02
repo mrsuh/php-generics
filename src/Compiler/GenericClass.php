@@ -39,13 +39,12 @@ class GenericClass
         $this->ast                = Parser::resolveNames(Parser::parse($content));
 
         /** @var Namespace_ $namespaceNode */
-        $namespaceNode   = Parser::filterOne($this->ast, Namespace_::class);
+        $namespaceNode   = Parser::filterOne($this->ast, [Namespace_::class]);
         $this->namespace = $namespaceNode->name->toString();
 
-        $classNodes = Parser::filter($this->ast, [Class_::class, Interface_::class, Trait_::class]);
+        /** @var Node\Stmt\ClassLike $classNode */
+        $classNode = Parser::filterOne($this->ast, [Class_::class, Interface_::class, Trait_::class]);
 
-        /** @var Class_ $classNode */
-        $classNode  = current($classNodes);
         $this->name = $classNode->name->toString();
 
         /** @var GenericParameter[] $genericParameters */
@@ -100,10 +99,9 @@ class GenericClass
     public function generateConcreteClass(array $concreteGenericsMap, Result $result): ConcreteClass
     {
         $ast        = Parser::cloneAst($this->ast);
-        $classNodes = Parser::filter($ast, [Class_::class, Interface_::class, Trait_::class]);
 
-        /** @var Class_ $classNode */
-        $classNode = current($classNodes);
+        /** @var Node\Stmt\ClassLike $classNode */
+        $classNode = Parser::filterOne($ast, [Class_::class, Interface_::class, Trait_::class]);
 
         $extendsNodes = [];
         if ($classNode instanceof Class_ && $classNode->extends !== null) {

@@ -46,15 +46,9 @@ class Parser
         });
     }
 
-    public static function filterOne(array $nodes, string $class): ?Node
+    public static function filterOne(array $nodes, array $classes): ?Node
     {
-        $nodes = (new NodeFinder())->find($nodes, function (Node $node) use ($class): bool {
-            if ($node instanceof $class) {
-                return true;
-            }
-
-            return false;
-        });
+        $nodes = self::filter($nodes, $classes);
 
         if (count($nodes) > 1) {
             throw new \Exception('Nodes more than one');

@@ -34,7 +34,7 @@ class Engine
         $nodes = Parser::parse($classFileContent);
 
         /** @var Class_ $classNode */
-        $classNode = Parser::filterOne($nodes, Class_::class);
+        $classNode = Parser::filterOne($nodes, [Class_::class]);
         if ($classNode !== null) {
 
             if (is_array(Parser::getGenericParameters($classNode))) {
@@ -50,6 +50,17 @@ class Engine
             foreach ($classNode->implements as $implementNode) {
                 if (is_array(Parser::getGenericParameters($implementNode))) {
                     return true;
+                }
+            }
+
+            /** @var Node\Stmt\TraitUse[] $traitUseNodes */
+            $traitUseNodes = Parser::filter([$classNode], [Node\Stmt\TraitUse::class]);
+            foreach ($traitUseNodes as $traitUseNode) {
+                foreach ($traitUseNode->traits as $traitNode) {
+                    $generics = Parser::getGenericParameters($traitNode);
+                    if (is_array($generics)) {
+                        return true;
+                    }
                 }
             }
         }
@@ -72,21 +83,6 @@ class Engine
             }
         }
 
-        /** @var Class_ $classNode */
-        $classNode = Parser::filterOne($nodes, Class_::class);
-        if ($classNode !== null) {
-            /** @var Node\Stmt\TraitUse[] $traitUseNodes */
-            $traitUseNodes = Parser::filter([$classNode], [Node\Stmt\TraitUse::class]);
-            foreach ($traitUseNodes as $traitUseNode) {
-                foreach ($traitUseNode->traits as $traitNode) {
-                    $generics = Parser::getGenericParameters($traitNode);
-                    if (is_array($generics)) {
-                        return true;
-                    }
-                }
-            }
-        }
-
         return false;
     }
 
@@ -96,10 +92,8 @@ class Engine
 
         $result = new Result();
 
-        $classNodes = Parser::filter($nodes, [Class_::class, Interface_::class, Trait_::class]);
-
-        /** @var Class_ $classNode */
-        $classNode = current($classNodes);
+        /** @var Node\Stmt\ClassLike $classNode */
+        $classNode = Parser::filterOne($nodes, [Class_::class, Interface_::class, Trait_::class]);
 
         $extendsNodes = [];
         if ($classNode instanceof Class_ && $classNode->extends !== null) {
@@ -171,7 +165,7 @@ class Engine
         }
 
         /** @var Namespace_ $namespaceNode */
-        $namespaceNode = Parser::filterOne($nodes, Namespace_::class);
+        $namespaceNode = Parser::filterOne($nodes, [Namespace_::class]);
         $namespace     = $namespaceNode->name->toString();
 
         $className = $classNode->name->toString();
