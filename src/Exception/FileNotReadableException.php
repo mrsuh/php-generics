@@ -2,6 +2,7 @@
 
 namespace Mrsuh\PhpGenerics\Exception;
 
-class FileNotReadableException extends \Exception {
+class FileNotReadableException extends \Exception
+{
 
 }

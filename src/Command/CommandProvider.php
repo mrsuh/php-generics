@@ -8,6 +8,6 @@ class CommandProvider implements CommandProviderCapability
 {
     public function getCommands()
     {
-        return array(new DumpCommand);
+        return [new DumpCommand];
     }
 }

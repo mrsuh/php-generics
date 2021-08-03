@@ -56,7 +56,11 @@ class GenericTypesMap
 
         $genericArguments = [];
         foreach ($genericParameters as $genericParameter) {
-            $name = (string)$genericParameter->name->getAttribute('originalName');
+            if ($genericParameter->name->hasAttribute('originalName')) {
+                $name = (string)$genericParameter->name->getAttribute('originalName');
+            } else {
+                $name = $genericParameter->name->toString();
+            }
 
             if (Parser::isBuiltinType($name)) {
                 $genericArguments[] = $name;

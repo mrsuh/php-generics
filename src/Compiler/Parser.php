@@ -113,6 +113,8 @@ class Parser
             case $node instanceof Node\Identifier:
                 $node->name = $type;
                 break;
+            default:
+                throw new \TypeError(sprintf('Invalid node name type %s', get_class($node)));
         }
     }
 
@@ -132,45 +134,26 @@ class Parser
         return isset($builtinTypes[strtolower($type)]);
     }
 
-    public static function setTypes(Node &$node, GenericTypesMap $genericTypesMap, ClassFinderInterface $classFinder): void
+    public static function setNodeType(Node &$node, GenericTypesMap $genericTypesMap, ClassFinderInterface $classFinder): void
+    {
+        $currentType = self::getNodeName($node, $classFinder);
+        if ($genericTypesMap->has($currentType)) {
+            self::setNodeName($node, $genericTypesMap->get($currentType));
+        }
+    }
+
+    public static function getNodeTypes(Node &$node): array
     {
         switch (true) {
             case $node instanceof Node\Name:
             case $node instanceof Node\Identifier:
-                foreach ($genericTypesMap->all() as $placeholder => $newType) {
-                    $currentType = self::getNodeName($node, $classFinder);
-
-                    if ($placeholder !== $currentType) {
-                        continue;
-                    }
-
-                    self::setNodeName($node, $newType);
-                }
-
-                break;
+                return [&$node];
             case $node instanceof Node\NullableType:
-                $currentType = self::getNodeName($node->type, $classFinder);
-                foreach ($genericTypesMap->all() as $placeholder => $newType) {
-                    if ($placeholder !== $currentType) {
-                        continue;
-                    }
-
-                    self::setNodeName($node->type, $newType);
-                }
-
-                break;
+                return [&$node->type];
             case $node instanceof Node\UnionType:
-                foreach ($node->types as &$typeNode) {
-                    $currentType = self::getNodeName($typeNode, $classFinder);
-                    foreach ($genericTypesMap->all() as $placeholder => $newType) {
-                        if ($placeholder !== $currentType) {
-                            continue;
-                        }
-
-                        self::setNodeName($typeNode, $newType);
-                    }
-                }
-                break;
+                return $node->types;
+            default:
+                throw new \TypeError('Invalid type');
         }
     }
 

@@ -115,13 +115,16 @@ class GenericClass
 
         /** @var Property[] $propertyNodes */
         $propertyNodes = Parser::filter([$classNode], [Property::class]);
-        foreach ($propertyNodes as $propertyNode) {
+        foreach ($propertyNodes as &$propertyNode) {
             if ($propertyNode->type !== null) {
-                if (self::needToHandle($propertyNode->type)) {
-                    $this->handleClass($propertyNode->type, $concreteGenericsMap, $result);
-                } else {
-                    Parser::setTypes($propertyNode->type, $concreteGenericsMap, $this->classFinder);
+                foreach (Parser::getNodeTypes($propertyNode->type) as &$nodeType) {
+                    if (self::needToHandle($nodeType)) {
+                        $this->handleClass($nodeType, $concreteGenericsMap, $result);
+                    } else {
+                        Parser::setNodeType($nodeType, $concreteGenericsMap, $this->classFinder);
+                    }
                 }
+                unset($nodeType);
             }
         }
 
@@ -130,11 +133,14 @@ class GenericClass
         foreach ($classMethodNodes as $classMethodNode) {
             foreach ($classMethodNode->params as $param) {
                 if ($param->type !== null) {
-                    if (self::needToHandle($param->type)) {
-                        $this->handleClass($param->type, $concreteGenericsMap, $result);
-                    } else {
-                        Parser::setTypes($param->type, $concreteGenericsMap, $this->classFinder);
+                    foreach (Parser::getNodeTypes($param->type) as &$nodeType) {
+                        if (self::needToHandle($nodeType)) {
+                            $this->handleClass($nodeType, $concreteGenericsMap, $result);
+                        } else {
+                            Parser::setNodeType($nodeType, $concreteGenericsMap, $this->classFinder);
+                        }
                     }
+                    unset($nodeType);
                 }
             }
 
@@ -142,10 +148,13 @@ class GenericClass
                 continue;
             }
 
-            if (self::needToHandle($classMethodNode->returnType)) {
-                $this->handleClass($classMethodNode->returnType, $concreteGenericsMap, $result);
-            } else {
-                Parser::setTypes($classMethodNode->returnType, $concreteGenericsMap, $this->classFinder);
+            foreach (Parser::getNodeTypes($classMethodNode->returnType) as &$nodeType) {
+                if (self::needToHandle($nodeType)) {
+                    $this->handleClass($nodeType, $concreteGenericsMap, $result);
+                } else {
+                    Parser::setNodeType($nodeType, $concreteGenericsMap, $this->classFinder);
+                }
+                unset($nodeType);
             }
         }
 
@@ -155,7 +164,7 @@ class GenericClass
             if (self::needToHandle($instanceofExprNode->class)) {
                 $this->handleClass($instanceofExprNode->class, $concreteGenericsMap, $result);
             } else {
-                Parser::setTypes($instanceofExprNode->class, $concreteGenericsMap, $this->classFinder);
+                Parser::setNodeType($instanceofExprNode->class, $concreteGenericsMap, $this->classFinder);
             }
         }
 
@@ -165,7 +174,7 @@ class GenericClass
             if (self::needToHandle($newExprNode->class)) {
                 $this->handleClass($newExprNode->class, $concreteGenericsMap, $result);
             } else {
-                Parser::setTypes($newExprNode->class, $concreteGenericsMap, $this->classFinder);
+                Parser::setNodeType($newExprNode->class, $concreteGenericsMap, $this->classFinder);
             }
         }
 
@@ -175,7 +184,7 @@ class GenericClass
             if (self::needToHandle($classConstFetchStmtNode->class)) {
                 $this->handleClass($classConstFetchStmtNode->class, $concreteGenericsMap, $result);
             } else {
-                Parser::setTypes($classConstFetchStmtNode->class, $concreteGenericsMap, $this->classFinder);
+                Parser::setNodeType($classConstFetchStmtNode->class, $concreteGenericsMap, $this->classFinder);
             }
         }
 
