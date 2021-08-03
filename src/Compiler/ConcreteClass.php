@@ -2,6 +2,8 @@
 
 namespace Mrsuh\PhpGenerics\Compiler;
 
+use PhpParser\Node;
+
 class ConcreteClass
 {
     public string $name;

@@ -21,7 +21,7 @@ class ComposerPlugin implements PluginInterface, Capable
     {
     }
 
-    public function getCapabilities()
+    public function getCapabilities(): array
     {
         return [
             'Composer\Plugin\Capability\CommandProvider' => 'Mrsuh\PhpGenerics\Command\CommandProvider',

@@ -104,12 +104,12 @@ class Engine
             $extendsNodes = $classNode->extends;
         }
 
-        foreach ($extendsNodes as &$extendsNode) {
+        foreach ($extendsNodes as $extendsNode) {
             $this->handleNode($extendsNode, $result);
         }
 
         if ($classNode instanceof Class_) {
-            foreach ($classNode->implements as &$implementsNode) {
+            foreach ($classNode->implements as $implementsNode) {
                 $this->handleNode($implementsNode, $result);
             }
         }
@@ -183,7 +183,7 @@ class Engine
      * @param Node\Name $node
      * @param Result    $result
      */
-    private function handleNode(Node $node, Result &$result): void
+    private function handleNode(Node $node, Result $result): void
     {
         /** @var GenericParameter[] $genericParameters */
         $genericParameters = Parser::getGenericParameters($node);

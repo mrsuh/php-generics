@@ -115,7 +115,7 @@ class GenericClass
 
         /** @var Property[] $propertyNodes */
         $propertyNodes = Parser::filter([$classNode], [Property::class]);
-        foreach ($propertyNodes as &$propertyNode) {
+        foreach ($propertyNodes as $propertyNode) {
             if ($propertyNode->type !== null) {
                 foreach (Parser::getNodeTypes($propertyNode->type) as &$nodeType) {
                     if (self::needToHandle($nodeType)) {

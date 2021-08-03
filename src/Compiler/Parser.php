@@ -9,7 +9,6 @@ use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor\CloningVisitor;
 use PhpParser\NodeVisitor\NameResolver;
 use PhpParser\ParserFactory;
-use PhpParser\PrettyPrinter\Standard;
 
 class Parser
 {
@@ -59,13 +58,6 @@ class Parser
         }
 
         return current($nodes);
-    }
-
-    public static function build(array $nodes): string
-    {
-        $prettyPrinter = new Standard();
-
-        return $prettyPrinter->prettyPrintFile($nodes) . PHP_EOL;
     }
 
     public static function getRelativeFilePath(string $fqn, ClassFinderInterface $classLoader): string

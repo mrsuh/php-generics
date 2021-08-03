@@ -21,7 +21,6 @@ class DumpCommand extends BaseCommand
         $this
             ->setName('dump-generics')
             ->setDescription('Dumps the concrete class files from generics classes');
-
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
