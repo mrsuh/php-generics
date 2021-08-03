@@ -90,11 +90,6 @@ class Engine
     {
         $result = new Result();
 
-//        $genericClass = new GenericClass($this->classFinder, $this->concreteClassCache, $this->genericClassCache, $classFileContent);
-//        $genericClass->generateConcreteClass([], $result);
-//
-//        return $result;
-
         $nodes = Parser::resolveNames(Parser::parse($classFileContent));
 
         /** @var Node\Stmt\ClassLike $classNode */

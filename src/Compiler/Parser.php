@@ -95,11 +95,28 @@ class Parser
             case $node instanceof Node\Identifier:
                 return (string)$node->name;
             default:
-                throw new \TypeError('Invalid nodeName class %s', get_class($node));
+                throw new \TypeError(sprintf('Invalid nodeName class %s', get_class($node)));
         }
     }
 
     public static function setNodeName(Node &$node, string $type): void
+    {
+        switch (true) {
+            case $node instanceof Node\Name:
+                $parts = explode('\\', $type);
+                if (self::isBuiltinType($type) || count($parts) === 1) {
+                    $node = new Node\Identifier($type);
+                } else {
+                    $node->parts = $parts;
+                }
+                break;
+            case $node instanceof Node\Identifier:
+                $node->name = $type;
+                break;
+        }
+    }
+
+    public static function isBuiltinType(string $type): bool
     {
         $builtinTypes = [
             'bool'     => true,
@@ -112,19 +129,7 @@ class Parser
             'array'    => true,
         ];
 
-        switch (true) {
-            case $node instanceof Node\Name:
-                $parts = explode('\\', $type);
-                if (isset($builtinTypes[strtolower($type)]) || count($parts) === 1) {
-                    $node = new Node\Identifier($type);
-                } else {
-                    $node->parts = $parts;
-                }
-                break;
-            case $node instanceof Node\Identifier:
-                $node->name = $type;
-                break;
-        }
+        return isset($builtinTypes[strtolower($type)]);
     }
 
     public static function setTypes(Node &$node, GenericTypesMap $genericTypesMap, ClassFinderInterface $classFinder): void

@@ -44,6 +44,36 @@ class GenericTypesMap
         return $map;
     }
 
+    /**
+     * @param GenericParameter[] $genericParameters
+     * @return string[]
+     */
+    public function generateFullArgumentsForNewGenericClass(ClassFinderInterface $classFinder, array $genericParameters): array
+    {
+        if (count($genericParameters) > $this->count()) {
+            throw new \TypeError('Invalid types count');
+        }
+
+        $genericArguments = [];
+        foreach ($genericParameters as $genericParameter) {
+            $name = (string)$genericParameter->name->getAttribute('originalName');
+
+            if (Parser::isBuiltinType($name)) {
+                $genericArguments[] = $name;
+                continue;
+            }
+
+            if ($this->has($name)) {
+                $genericArguments[] = $this->get($name);
+                continue;
+            }
+
+            $genericArguments[] = Parser::getNodeName($genericParameter->name, $classFinder);
+        }
+
+        return $genericArguments;
+    }
+
     public function set(string $type, string $concreteType): void
     {
         $this->types[$type] = $concreteType;

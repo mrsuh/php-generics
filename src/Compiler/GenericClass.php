@@ -5,7 +5,9 @@ namespace Mrsuh\PhpGenerics\Compiler;
 use Mrsuh\PhpGenerics\Compiler\Cache\ConcreteClassCache;
 use Mrsuh\PhpGenerics\Compiler\Cache\GenericClassCache;
 use PhpParser\Node;
+use PhpParser\Node\Expr\ClassConstFetch;
 use PhpParser\Node\Expr\Instanceof_;
+use PhpParser\Node\Expr\New_;
 use PhpParser\Node\GenericParameter;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
@@ -115,7 +117,11 @@ class GenericClass
         $propertyNodes = Parser::filter([$classNode], [Property::class]);
         foreach ($propertyNodes as $propertyNode) {
             if ($propertyNode->type !== null) {
-                Parser::setTypes($propertyNode->type, $concreteGenericsMap, $this->classFinder);
+                if (self::needToHandle($propertyNode->type)) {
+                    $this->handleClass($propertyNode->type, $concreteGenericsMap, $result);
+                } else {
+                    Parser::setTypes($propertyNode->type, $concreteGenericsMap, $this->classFinder);
+                }
             }
         }
 
@@ -124,7 +130,11 @@ class GenericClass
         foreach ($classMethodNodes as $classMethodNode) {
             foreach ($classMethodNode->params as $param) {
                 if ($param->type !== null) {
-                    Parser::setTypes($param->type, $concreteGenericsMap, $this->classFinder);
+                    if (self::needToHandle($param->type)) {
+                        $this->handleClass($param->type, $concreteGenericsMap, $result);
+                    } else {
+                        Parser::setTypes($param->type, $concreteGenericsMap, $this->classFinder);
+                    }
                 }
             }
 
@@ -134,10 +144,9 @@ class GenericClass
 
             if (self::needToHandle($classMethodNode->returnType)) {
                 $this->handleClass($classMethodNode->returnType, $concreteGenericsMap, $result);
-                continue;
+            } else {
+                Parser::setTypes($classMethodNode->returnType, $concreteGenericsMap, $this->classFinder);
             }
-
-            Parser::setTypes($classMethodNode->returnType, $concreteGenericsMap, $this->classFinder);
         }
 
         /** @var Instanceof_[] $newExprNodes */
@@ -147,6 +156,26 @@ class GenericClass
                 $this->handleClass($instanceofExprNode->class, $concreteGenericsMap, $result);
             } else {
                 Parser::setTypes($instanceofExprNode->class, $concreteGenericsMap, $this->classFinder);
+            }
+        }
+
+        /** @var New_[] $newExprNodes */
+        $newExprNodes = Parser::filter([$classNode], [New_::class]);
+        foreach ($newExprNodes as $newExprNode) {
+            if (self::needToHandle($newExprNode->class)) {
+                $this->handleClass($newExprNode->class, $concreteGenericsMap, $result);
+            } else {
+                Parser::setTypes($newExprNode->class, $concreteGenericsMap, $this->classFinder);
+            }
+        }
+
+        /** @var ClassConstFetch[] $classConstFetchStmtNodes */
+        $classConstFetchStmtNodes = Parser::filter([$classNode], [ClassConstFetch::class]);
+        foreach ($classConstFetchStmtNodes as $classConstFetchStmtNode) {
+            if (self::needToHandle($classConstFetchStmtNode->class)) {
+                $this->handleClass($classConstFetchStmtNode->class, $concreteGenericsMap, $result);
+            } else {
+                Parser::setTypes($classConstFetchStmtNode->class, $concreteGenericsMap, $this->classFinder);
             }
         }
 
@@ -178,7 +207,7 @@ class GenericClass
 
         $genericClass = $this->genericClassCache->get($genericClassFqn);
 
-        $genericsTypes = self::getGenericTypesByNodeAndMap($this->classFinder, $node, $genericTypesMap);
+        $genericsTypes = $genericTypesMap->generateFullArgumentsForNewGenericClass($this->classFinder, (array)Parser::getGenericParameters($node));
 
         $concreteClassCacheKey = $genericClass->getConcreteClassCacheKey($genericsTypes);
         if (!$this->concreteClassCache->has($concreteClassCacheKey)) {
@@ -190,28 +219,5 @@ class GenericClass
         $concreteClass = $this->concreteClassCache->get($concreteClassCacheKey);
 
         Parser::setNodeName($node, $concreteClass->fqn);
-    }
-
-    private static function getGenericTypesByNodeAndMap(ClassFinderInterface $classFinder, Node $node, GenericTypesMap $genericTypesMap): array
-    {
-        /** @var GenericParameter[] $genericParameters */
-        $parameters = (array)Parser::getGenericParameters($node);
-
-        if (count($parameters) > $genericTypesMap->count()) {
-            throw new \TypeError('Invalid types count');
-        }
-
-        $types = [];
-        foreach ($parameters as $genericParameter) {
-            $genericParameterName = Parser::getNodeName($genericParameter->name, $classFinder);
-
-            if ($genericTypesMap->has($genericParameterName)) {
-                $types[] = $genericTypesMap->get($genericParameterName);
-            } else {
-                $types[] = $genericParameterName;
-            }
-        }
-
-        return $types;
     }
 }
