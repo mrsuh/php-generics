@@ -29,7 +29,7 @@ class Compiler
                 throw new \RuntimeException('Can\'t read file ' . $sourceFile->getRealPath());
             }
 
-            if (!$this->engine->needToHandle($content)) {
+            if (!$this->engine->hasGenericClassUsages($content)) {
                 continue;
             }
 

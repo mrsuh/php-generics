@@ -8,7 +8,6 @@ use PhpParser\Node;
 use PhpParser\Node\Expr\ClassConstFetch;
 use PhpParser\Node\Expr\Instanceof_;
 use PhpParser\Node\Expr\New_;
-use PhpParser\Node\GenericParameter;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Interface_;
@@ -29,7 +28,7 @@ class Engine
         $this->classFinder        = $classFinder;
     }
 
-    public function needToHandle(string $classFileContent): bool
+    public function hasGenericClassUsages(string $classFileContent): bool
     {
         $nodes = Parser::parse($classFileContent);
 
@@ -37,18 +36,18 @@ class Engine
         $classNode = Parser::filterOne($nodes, [Class_::class]);
         if ($classNode !== null) {
 
-            if (is_array(Parser::getGenericParameters($classNode))) {
+            if (Parser::isGenericClass($classNode)) {
                 return false;
             }
 
             if ($classNode->extends !== null) {
-                if (is_array(Parser::getGenericParameters($classNode->extends))) {
+                if (Parser::isGenericClass($classNode->extends)) {
                     return true;
                 }
             }
 
             foreach ($classNode->implements as $implementNode) {
-                if (is_array(Parser::getGenericParameters($implementNode))) {
+                if (Parser::isGenericClass($implementNode)) {
                     return true;
                 }
             }
@@ -57,8 +56,7 @@ class Engine
             $traitUseNodes = Parser::filter([$classNode], [Node\Stmt\TraitUse::class]);
             foreach ($traitUseNodes as $traitUseNode) {
                 foreach ($traitUseNode->traits as $traitNode) {
-                    $generics = Parser::getGenericParameters($traitNode);
-                    if (is_array($generics)) {
+                    if (Parser::isGenericClass($traitNode)) {
                         return true;
                     }
                 }
@@ -68,8 +66,7 @@ class Engine
         /** @var New_[] $newExprNodes */
         $newExprNodes = Parser::filter($nodes, [New_::class]);
         foreach ($newExprNodes as $newExprNode) {
-            $generics = Parser::getGenericParameters($newExprNode->class);
-            if (is_array($generics)) {
+            if (Parser::isGenericClass($newExprNode->class)) {
                 return true;
             }
         }
@@ -77,8 +74,7 @@ class Engine
         /** @var ClassConstFetch[] $classConstFetchStmtNodes */
         $classConstFetchStmtNodes = Parser::filter($nodes, [ClassConstFetch::class]);
         foreach ($classConstFetchStmtNodes as $classConstFetchStmtNode) {
-            $generics = Parser::getGenericParameters($classConstFetchStmtNode->class);
-            if (is_array($generics)) {
+            if (Parser::isGenericClass($classConstFetchStmtNode->class)) {
                 return true;
             }
         }
@@ -105,38 +101,38 @@ class Engine
         }
 
         foreach ($extendsNodes as $extendsNode) {
-            $this->handleNode($extendsNode, $result);
+            $this->handleClass($extendsNode, $result);
         }
 
         if ($classNode instanceof Class_) {
             foreach ($classNode->implements as $implementsNode) {
-                $this->handleNode($implementsNode, $result);
+                $this->handleClass($implementsNode, $result);
             }
         }
 
         /** @var New_[] $newExprNodes */
         $newExprNodes = Parser::filter($nodes, [New_::class]);
         foreach ($newExprNodes as $newExprNode) {
-            $this->handleNode($newExprNode->class, $result);
+            $this->handleClass($newExprNode->class, $result);
         }
 
         /** @var Instanceof_[] $newExprNodes */
         $instanceofExprNodes = Parser::filter($nodes, [Instanceof_::class]);
         foreach ($instanceofExprNodes as $instanceofExprNode) {
-            $this->handleNode($instanceofExprNode->class, $result);
+            $this->handleClass($instanceofExprNode->class, $result);
         }
 
         /** @var ClassConstFetch[] $classConstFetchStmtNodes */
         $classConstFetchStmtNodes = Parser::filter($nodes, [ClassConstFetch::class]);
         foreach ($classConstFetchStmtNodes as $classConstFetchStmtNode) {
-            $this->handleNode($classConstFetchStmtNode->class, $result);
+            $this->handleClass($classConstFetchStmtNode->class, $result);
         }
 
         /** @var Node\Stmt\TraitUse[] $traitUseNodes */
         $traitUseNodes = Parser::filter($nodes, [Node\Stmt\TraitUse::class]);
         foreach ($traitUseNodes as $traitUseNode) {
             foreach ($traitUseNode->traits as $traitNode) {
-                $this->handleNode($traitNode, $result);
+                $this->handleClass($traitNode, $result);
             }
         }
 
@@ -144,7 +140,7 @@ class Engine
         $propertyNodes = Parser::filter([$classNode], [Property::class]);
         foreach ($propertyNodes as $propertyNode) {
             if ($propertyNode->type !== null) {
-                $this->handleNode($propertyNode->type, $result);
+                $this->handleClass($propertyNode->type, $result);
             }
         }
 
@@ -153,7 +149,7 @@ class Engine
         foreach ($classMethodNodes as $classMethodNode) {
             foreach ($classMethodNode->params as $param) {
                 if ($param->type !== null) {
-                    $this->handleNode($param->type, $result);
+                    $this->handleClass($param->type, $result);
                 }
             }
 
@@ -161,7 +157,7 @@ class Engine
                 continue;
             }
 
-            $this->handleNode($classMethodNode->returnType, $result);
+            $this->handleClass($classMethodNode->returnType, $result);
         }
 
         /** @var Namespace_ $namespaceNode */
@@ -183,11 +179,9 @@ class Engine
      * @param Node\Name $node
      * @param Result    $result
      */
-    private function handleNode(Node $node, Result $result): void
+    private function handleClass(Node $node, Result $result): void
     {
-        /** @var GenericParameter[] $genericParameters */
-        $genericParameters = Parser::getGenericParameters($node);
-        if (!is_array($genericParameters)) {
+        if (!Parser::isGenericClass($node)) {
             return;
         }
 
@@ -200,7 +194,7 @@ class Engine
         $genericClass = $this->genericClassCache->get($genericClassFqn);
 
         $genericTypes = [];
-        foreach ($genericParameters as $genericParameter) {
+        foreach (Parser::getGenericParameters($node) as $genericParameter) {
             $genericTypes[] = Parser::getNodeName($genericParameter->name, $this->classFinder);
         }
 

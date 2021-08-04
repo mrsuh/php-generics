@@ -95,11 +95,10 @@ class Parser
     {
         switch (true) {
             case $node instanceof Node\Name:
-                $parts = explode('\\', $type);
-                if (self::isBuiltinType($type) || count($parts) === 1) {
+                if (self::isBuiltinType($type)) {
                     $node = new Node\Identifier($type);
                 } else {
-                    $node->parts = $parts;
+                    $node->parts = explode('\\', $type);
                 }
                 break;
             case $node instanceof Node\Identifier:
@@ -160,6 +159,11 @@ class Parser
     public static function getGenericParameters(Node $node): ?array
     {
         return $node->getAttribute('generics');
+    }
+
+    public static function isGenericClass(Node $node): bool
+    {
+        return is_array(Parser::getGenericParameters($node));
     }
 }
 
