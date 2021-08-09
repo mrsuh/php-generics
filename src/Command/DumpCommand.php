@@ -7,7 +7,6 @@ use Composer\Util\Filesystem;
 use Mrsuh\PhpGenerics\Autoload\AutoloadGenerator;
 use Mrsuh\PhpGenerics\Compiler\ClassFinder;
 use Mrsuh\PhpGenerics\Compiler\Compiler;
-use Mrsuh\PhpGenerics\Compiler\Engine;
 use Mrsuh\PhpGenerics\Compiler\Parser;
 use Mrsuh\PhpGenerics\Compiler\Printer;
 use Symfony\Component\Console\Input\InputInterface;
@@ -49,8 +48,7 @@ class DumpCommand extends BaseCommand
         $classFinder = new ClassFinder($autoloads, $autoloadGenerator, $filesystem, $basePath, $vendorPath);
 
         $printer  = new Printer();
-        $engine   = new Engine($classFinder);
-        $compiler = new Compiler($engine);
+        $compiler = new Compiler($classFinder);
 
         $filesCount = 0;
         foreach ($autoloads['psr-4'] as $paths) {

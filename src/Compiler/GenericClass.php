@@ -28,17 +28,20 @@ class GenericClass
     private string $namespace;
     private array  $ast;
 
+    /**
+     * @param Node[] $ast
+     */
     public function __construct(
         ClassFinderInterface $classFinder,
         ConcreteClassCache $concreteClassCache,
         GenericClassCache $genericClassCache,
-        string $content
+        array $ast
     )
     {
         $this->classFinder        = $classFinder;
         $this->concreteClassCache = $concreteClassCache;
         $this->genericClassCache  = $genericClassCache;
-        $this->ast                = Parser::resolveNames(Parser::parse($content));
+        $this->ast                = $ast;
 
         /** @var Namespace_ $namespaceNode */
         $namespaceNode   = Parser::filterOne($this->ast, [Namespace_::class]);
@@ -49,7 +52,6 @@ class GenericClass
 
         $this->name = $classNode->name->toString();
 
-        /** @var GenericParameter[] $genericParameters */
         $this->parameters = (array)Parser::getGenericParameters($classNode);
     }
 
@@ -79,7 +81,11 @@ class GenericClass
 
     public function generateConcreteClass(array $genericsTypes, Result $result): ConcreteClass
     {
-        $concreteGenericsMap = GenericTypesMap::fromParametersAndArguments($this->classFinder, $this->parameters, $genericsTypes);
+        if (count($this->parameters) === 0 && count($genericsTypes) === 0) {
+            $concreteGenericsMap = new GenericTypesMap($this->classFinder);
+        } else {
+            $concreteGenericsMap = GenericTypesMap::fromParametersAndArguments($this->classFinder, $this->parameters, $genericsTypes);
+        }
 
         $ast = Parser::cloneAst($this->ast);
 
@@ -206,12 +212,13 @@ class GenericClass
         $genericClassFqn = Parser::getNodeName($node, $this->classFinder);
         if (!$this->genericClassCache->has($genericClassFqn)) {
             $genericClassFileContent = $this->classFinder->getFileContentByClassFqn($genericClassFqn);
-            $this->genericClassCache->set($genericClassFqn, new self($this->classFinder, $this->concreteClassCache, $this->genericClassCache, $genericClassFileContent));
+            $genericClassAst         = Parser::resolveNames(Parser::parse($genericClassFileContent));
+            $this->genericClassCache->set($genericClassFqn, new self($this->classFinder, $this->concreteClassCache, $this->genericClassCache, $genericClassAst));
         }
 
         $genericClass = $this->genericClassCache->get($genericClassFqn);
 
-        $genericsTypes = $genericTypesMap->generateFullArgumentsForNewGenericClass($this->classFinder, (array)Parser::getGenericParameters($node));
+        $genericsTypes = $genericTypesMap->generateFullArgumentsForNewGenericClass((array)Parser::getGenericParameters($node));
 
         $concreteClassCacheKey = $genericClass->getConcreteClassCacheKey($genericsTypes);
         if (!$this->concreteClassCache->has($concreteClassCacheKey)) {

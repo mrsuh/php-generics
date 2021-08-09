@@ -4,6 +4,9 @@ namespace Mrsuh\PhpGenerics\Compiler;
 
 use PhpParser\Lexer\Emulative;
 use PhpParser\Node;
+use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Expr\New_;
+use PhpParser\Node\Stmt\Class_;
 use PhpParser\NodeFinder;
 use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor\CloningVisitor;
@@ -156,14 +159,77 @@ class Parser
         return $nodeTraverser->traverse($ast);
     }
 
-    public static function getGenericParameters(Node $node): ?array
+    /**
+     * @return Node\GenericParameter[]
+     */
+    public static function getGenericParameters(Node $node): array
     {
-        return $node->getAttribute('generics');
+        return (array)$node->getAttribute('generics');
+    }
+
+    public static function hasGenericParameters(Node $node): bool
+    {
+        return is_array($node->getAttribute('generics'));
     }
 
     public static function isGenericClass(Node $node): bool
     {
-        return is_array(Parser::getGenericParameters($node));
+        return Parser::hasGenericParameters($node);
+    }
+
+    /**
+     * @param Node[] $ast
+     */
+    public static function hasGenericClassUsages(array $ast): bool
+    {
+        /** @var Class_ $classNode */
+        $classNode = Parser::filterOne($ast, [Class_::class]);
+        if ($classNode !== null) {
+
+            if (Parser::isGenericClass($classNode)) {
+                return false;
+            }
+
+            if ($classNode->extends !== null) {
+                if (Parser::isGenericClass($classNode->extends)) {
+                    return true;
+                }
+            }
+
+            foreach ($classNode->implements as $implementNode) {
+                if (Parser::isGenericClass($implementNode)) {
+                    return true;
+                }
+            }
+
+            /** @var Node\Stmt\TraitUse[] $traitUseNodes */
+            $traitUseNodes = Parser::filter([$classNode], [Node\Stmt\TraitUse::class]);
+            foreach ($traitUseNodes as $traitUseNode) {
+                foreach ($traitUseNode->traits as $traitNode) {
+                    if (Parser::isGenericClass($traitNode)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        /** @var New_[] $newExprNodes */
+        $newExprNodes = Parser::filter($ast, [New_::class]);
+        foreach ($newExprNodes as $newExprNode) {
+            if (Parser::isGenericClass($newExprNode->class)) {
+                return true;
+            }
+        }
+
+        /** @var ClassConstFetch[] $classConstFetchStmtNodes */
+        $classConstFetchStmtNodes = Parser::filter($ast, [ClassConstFetch::class]);
+        foreach ($classConstFetchStmtNodes as $classConstFetchStmtNode) {
+            if (Parser::isGenericClass($classConstFetchStmtNode->class)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
 

@@ -6,16 +6,21 @@ use PhpParser\Node\GenericParameter;
 
 class GenericTypesMap
 {
-    private array $types = [];
+    private array                $types = [];
+    private ClassFinderInterface $classFinder;
+
+    public function __construct(ClassFinderInterface $classFinder)
+    {
+        $this->classFinder = $classFinder;
+    }
 
     /**
      * @param GenericParameter[] $parameters
      * @param string[]           $arguments
-     * @return static
      */
     public static function fromParametersAndArguments(ClassFinderInterface $classFinder, array $parameters, array $arguments): self
     {
-        $map = new self();
+        $map = new self($classFinder);
 
         if (count($arguments) > count($parameters)) {
             throw new \TypeError('Invalid types count');
@@ -48,12 +53,8 @@ class GenericTypesMap
      * @param GenericParameter[] $genericParameters
      * @return string[]
      */
-    public function generateFullArgumentsForNewGenericClass(ClassFinderInterface $classFinder, array $genericParameters): array
+    public function generateFullArgumentsForNewGenericClass(array $genericParameters): array
     {
-        if (count($genericParameters) > $this->count()) {
-            throw new \TypeError('Invalid types count');
-        }
-
         $genericArguments = [];
         foreach ($genericParameters as $genericParameter) {
             if ($genericParameter->name->hasAttribute('originalName')) {
@@ -72,7 +73,7 @@ class GenericTypesMap
                 continue;
             }
 
-            $genericArguments[] = Parser::getNodeName($genericParameter->name, $classFinder);
+            $genericArguments[] = Parser::getNodeName($genericParameter->name, $this->classFinder);
         }
 
         return $genericArguments;

@@ -2,19 +2,24 @@
 
 namespace Mrsuh\PhpGenerics\Compiler;
 
+use Mrsuh\PhpGenerics\Compiler\Cache\ConcreteClassCache;
+use Mrsuh\PhpGenerics\Compiler\Cache\GenericClassCache;
 use Symfony\Component\Finder\Finder;
 
 class Compiler
 {
-    private Engine $engine;
+    private ClassFinderInterface $classFinder;
 
-    public function __construct(Engine $engine)
+    public function __construct(ClassFinderInterface $classFinder)
     {
-        $this->engine = $engine;
+        $this->classFinder = $classFinder;
     }
 
     public function compile(string $directory): Result
     {
+        $concreteClassCache = new ConcreteClassCache();
+        $genericClassCache  = new GenericClassCache();
+
         $sourceFiles = (new Finder())
             ->in($directory)
             ->name('*.php')
@@ -29,13 +34,16 @@ class Compiler
                 throw new \RuntimeException('Can\'t read file ' . $sourceFile->getRealPath());
             }
 
-            if (!$this->engine->hasGenericClassUsages($content)) {
+            $ast = Parser::resolveNames(Parser::parse($content));
+
+            if (!Parser::hasGenericClassUsages($ast)) {
                 continue;
             }
 
-            foreach ($this->engine->handle($content)->getConcreteClasses() as $concreteClass) {
-                $result->addConcreteClass($concreteClass);
-            }
+            $usageGenericClass = new GenericClass($this->classFinder, $concreteClassCache, $genericClassCache, $ast);
+
+            $usageConcreteClass = $usageGenericClass->generateConcreteClass([], $result);
+            $result->addConcreteClass($usageConcreteClass);
         }
 
         return $result;
