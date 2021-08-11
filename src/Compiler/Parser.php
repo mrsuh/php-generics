@@ -2,6 +2,7 @@
 
 namespace Mrsuh\PhpGenerics\Compiler;
 
+use Mrsuh\PhpGenerics\Compiler\ClassFinder\ClassFinderInterface;
 use PhpParser\Lexer\Emulative;
 use PhpParser\Node;
 use PhpParser\Node\Expr\ClassConstFetch;
@@ -61,16 +62,6 @@ class Parser
         }
 
         return current($nodes);
-    }
-
-    public static function getRelativeFilePath(string $fqn, ClassFinderInterface $classLoader): string
-    {
-        $psr4Prefixes = $classLoader->getPrefixesPsr4();
-        foreach (array_keys($psr4Prefixes) as $namespace) {
-            $fqn = str_replace($namespace, '', $fqn);
-        }
-
-        return str_replace('\\', DIRECTORY_SEPARATOR, $fqn) . '.php';
     }
 
     public static function getNodeName(Node $node, ClassFinderInterface $classFinder): string

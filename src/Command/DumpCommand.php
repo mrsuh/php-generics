@@ -2,12 +2,12 @@
 
 namespace Mrsuh\PhpGenerics\Command;
 
+use Composer\Autoload\ClassLoader;
 use Composer\Command\BaseCommand;
 use Composer\Util\Filesystem;
 use Mrsuh\PhpGenerics\Autoload\AutoloadGenerator;
-use Mrsuh\PhpGenerics\Compiler\ClassFinder;
+use Mrsuh\PhpGenerics\Compiler\ClassFinder\ClassFinder;
 use Mrsuh\PhpGenerics\Compiler\Compiler;
-use Mrsuh\PhpGenerics\Compiler\Parser;
 use Mrsuh\PhpGenerics\Compiler\Printer;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -45,7 +45,8 @@ class DumpCommand extends BaseCommand
         $basePath   = $filesystem->normalizePath(realpath(realpath(getcwd())));
         $vendorPath = $filesystem->normalizePath(realpath(realpath($config->get('vendor-dir'))));
 
-        $classFinder = new ClassFinder($autoloads, $autoloadGenerator, $filesystem, $basePath, $vendorPath);
+        $classLoader = self::getClassLoader($autoloads, $autoloadGenerator, $filesystem, $basePath, $vendorPath);
+        $classFinder = new ClassFinder($classLoader);
 
         $printer  = new Printer();
         $compiler = new Compiler($classFinder);
@@ -68,7 +69,7 @@ class DumpCommand extends BaseCommand
             $result = $compiler->compile($sourceDir);
 
             foreach ($result->getConcreteClasses() as $concreteClass) {
-                $concreteFilePath = $cacheDir . DIRECTORY_SEPARATOR . ltrim(Parser::getRelativeFilePath($concreteClass->fqn, $classFinder), DIRECTORY_SEPARATOR);
+                $concreteFilePath = $cacheDir . DIRECTORY_SEPARATOR . ltrim($classFinder->getRelativeFilePathByClassFqn($concreteClass->fqn), DIRECTORY_SEPARATOR);
                 $filesystem->ensureDirectoryExists(dirname($concreteFilePath));
                 file_put_contents($concreteFilePath, $printer->printFile($concreteClass->ast));
                 $filesCount++;
@@ -80,5 +81,29 @@ class DumpCommand extends BaseCommand
         }
 
         $this->getIO()->write('<info>Generated files containing ' . $filesCount . ' concrete classes</info>');
+    }
+
+    private function getClassLoader(array $autoloads, AutoloadGenerator $autoloadGenerator, Filesystem $filesystem, string $basePath, string $vendorPath): ClassLoader
+    {
+        $classLoader = new ClassLoader();
+        foreach ($autoloads['psr-4'] as $namespace => $paths) {
+            $exportedPaths = [];
+            foreach ($paths as $path) {
+                $exportedPaths[] = $autoloadGenerator->getAbsolutePath($filesystem, $basePath, $vendorPath, $path);
+            }
+
+            $classLoader->setPsr4($namespace, $exportedPaths);
+        }
+
+        foreach ($autoloads['psr-0'] as $namespace => $paths) {
+            $exportedPaths = [];
+            foreach ($paths as $path) {
+                $exportedPaths[] = $autoloadGenerator->getAbsolutePath($filesystem, $basePath, $vendorPath, $path);
+            }
+
+            $classLoader->set($namespace, $exportedPaths);
+        }
+
+        return $classLoader;
     }
 }

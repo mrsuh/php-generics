@@ -4,6 +4,7 @@ namespace Mrsuh\PhpGenerics\Compiler;
 
 use Mrsuh\PhpGenerics\Compiler\Cache\ConcreteClassCache;
 use Mrsuh\PhpGenerics\Compiler\Cache\GenericClassCache;
+use Mrsuh\PhpGenerics\Compiler\ClassFinder\ClassFinderInterface;
 use PhpParser\Node;
 use PhpParser\Node\Expr\ClassConstFetch;
 use PhpParser\Node\Expr\Instanceof_;
@@ -55,23 +56,23 @@ class GenericClass
         $this->parameters = (array)Parser::getGenericParameters($classNode);
     }
 
-    public function getConcreteClassCacheKey(array $genericTypes): string
+    public function getConcreteClassCacheKey(array $arguments): string
     {
-        return $this->namespace . '\\' . $this->generateConcreteClassName($genericTypes);
+        return $this->namespace . '\\' . $this->generateConcreteClassName($arguments);
     }
 
-    private function generateConcreteClassName(array $genericTypes): string
+    private function generateConcreteClassName(array $arguments): string
     {
-        if (empty($genericTypes)) {
+        if (empty($arguments)) {
             return $this->name;
         }
 
-        $types = [];
-        foreach ($genericTypes as $genericsType) {
-            $types[] = ucfirst(str_replace('\\', '', $genericsType));
+        $parts = [];
+        foreach ($arguments as $argument) {
+            $parts[] = ucfirst(str_replace('\\', '', $argument));
         }
 
-        return $this->name . 'For' . implode('And', $types);
+        return $this->name . 'For' . implode('And', $parts);
     }
 
     private function generateConcreteClassFqn(array $genericTypes): string
@@ -79,12 +80,12 @@ class GenericClass
         return $this->namespace . '\\' . $this->generateConcreteClassName($genericTypes);
     }
 
-    public function generateConcreteClass(array $genericsTypes, Result $result): ConcreteClass
+    public function generateConcreteClass(array $arguments, Result $result): ConcreteClass
     {
-        if (count($this->parameters) === 0 && count($genericsTypes) === 0) {
+        if (count($this->parameters) === 0 && count($arguments) === 0) {
             $concreteGenericsMap = new GenericTypesMap($this->classFinder);
         } else {
-            $concreteGenericsMap = GenericTypesMap::fromParametersAndArguments($this->classFinder, $this->parameters, $genericsTypes);
+            $concreteGenericsMap = GenericTypesMap::fromParametersAndArguments($this->classFinder, $this->parameters, $arguments);
         }
 
         $ast = Parser::cloneAst($this->ast);
@@ -218,11 +219,11 @@ class GenericClass
 
         $genericClass = $this->genericClassCache->get($genericClassFqn);
 
-        $genericsTypes = $genericTypesMap->generateFullArgumentsForNewGenericClass((array)Parser::getGenericParameters($node));
+        $arguments = $genericTypesMap->generateFullArgumentsForNewGenericClass((array)Parser::getGenericParameters($node));
 
-        $concreteClassCacheKey = $genericClass->getConcreteClassCacheKey($genericsTypes);
+        $concreteClassCacheKey = $genericClass->getConcreteClassCacheKey($arguments);
         if (!$this->concreteClassCache->has($concreteClassCacheKey)) {
-            $concreteClass = $genericClass->generateConcreteClass($genericsTypes, $result);
+            $concreteClass = $genericClass->generateConcreteClass($arguments, $result);
             $result->addConcreteClass($concreteClass);
             $this->concreteClassCache->set($concreteClassCacheKey, $concreteClass);
         }

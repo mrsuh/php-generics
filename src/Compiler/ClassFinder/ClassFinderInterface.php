@@ -1,6 +1,6 @@
 <?php
 
-namespace Mrsuh\PhpGenerics\Compiler;
+namespace Mrsuh\PhpGenerics\Compiler\ClassFinder;
 
 interface ClassFinderInterface
 {
@@ -8,5 +8,5 @@ interface ClassFinderInterface
 
     public function isFileExistsByClassFqn(string $fqn): bool;
 
-    public function getPrefixesPsr4(): array;
+    public function getRelativeFilePathByClassFqn(string $fqn): string;
 }

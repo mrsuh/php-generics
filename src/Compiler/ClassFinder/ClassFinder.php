@@ -1,6 +1,6 @@
 <?php
 
-namespace Mrsuh\PhpGenerics\Compiler;
+namespace Mrsuh\PhpGenerics\Compiler\ClassFinder;
 
 use Composer\Autoload\ClassLoader;
 use Mrsuh\PhpGenerics\Exception\ClassNotFoundException;
@@ -10,26 +10,9 @@ class ClassFinder implements ClassFinderInterface
 {
     private ClassLoader $classLoader;
 
-    public function __construct(array $autoloads, $autoloadGenerator, $filesystem, $basePath, $vendorPath)
+    public function __construct(ClassLoader $classLoader)
     {
-        $this->classLoader = new ClassLoader();
-        foreach ($autoloads['psr-4'] as $namespace => $paths) {
-            $exportedPaths = [];
-            foreach ($paths as $path) {
-                $exportedPaths[] = $autoloadGenerator->getAbsolutePath($filesystem, $basePath, $vendorPath, $path);
-            }
-
-            $this->classLoader->setPsr4($namespace, $exportedPaths);
-        }
-
-        foreach ($autoloads['psr-0'] as $namespace => $paths) {
-            $exportedPaths = [];
-            foreach ($paths as $path) {
-                $exportedPaths[] = $autoloadGenerator->getAbsolutePath($filesystem, $basePath, $vendorPath, $path);
-            }
-
-            $this->classLoader->set($namespace, $exportedPaths);
-        }
+        $this->classLoader = $classLoader;
     }
 
     public function isFileExistsByClassFqn(string $fqn): bool
@@ -56,8 +39,13 @@ class ClassFinder implements ClassFinderInterface
         return $content;
     }
 
-    public function getPrefixesPsr4(): array
+    public function getRelativeFilePathByClassFqn(string $fqn): string
     {
-        return $this->classLoader->getPrefixesPsr4();
+        $psr4Prefixes = $this->classLoader->getPrefixesPsr4();
+        foreach (array_keys($psr4Prefixes) as $namespace) {
+            $fqn = str_replace($namespace, '', $fqn);
+        }
+
+        return str_replace('\\', DIRECTORY_SEPARATOR, $fqn) . '.php';
     }
 }

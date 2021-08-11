@@ -2,6 +2,7 @@
 
 namespace Mrsuh\PhpGenerics\Compiler;
 
+use Mrsuh\PhpGenerics\Compiler\ClassFinder\ClassFinderInterface;
 use PhpParser\Node\GenericParameter;
 
 class GenericTypesMap
@@ -34,13 +35,13 @@ class GenericTypesMap
             } else {
                 $default = $genericParameter->default;
                 if ($default === null) {
-                    throw new \TypeError('There is no default value for index ' . $index);//@todo
+                    throw new \TypeError('There is no default value for argument ' . ($index + 1));
                 }
                 $concreteType = Parser::getNodeName($default, $classFinder);
             }
 
             if (empty($concreteType)) {
-                throw new \TypeError('Empty type');//@todo
+                throw new \TypeError('Invalid argument ' . ($index + 1));
             }
 
             $map->set($genericParameterName, $concreteType);
