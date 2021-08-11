@@ -82,10 +82,11 @@ class GenericClass
 
     public function generateConcreteClass(array $arguments, Result $result): ConcreteClass
     {
+        /** Usage class */
         if (count($this->parameters) === 0 && count($arguments) === 0) {
-            $concreteGenericsMap = new GenericTypesMap($this->classFinder);
+            $concreteGenericsMap = new GenericParametersMap($this->classFinder);
         } else {
-            $concreteGenericsMap = GenericTypesMap::fromParametersAndArguments($this->classFinder, $this->parameters, $arguments);
+            $concreteGenericsMap = GenericParametersMap::fromParametersAndArguments($this->classFinder, $this->parameters, $arguments);
         }
 
         $ast = Parser::cloneAst($this->ast);
@@ -195,16 +196,16 @@ class GenericClass
             }
         }
 
-        Parser::setNodeName($classNode->name, $this->generateConcreteClassName($concreteGenericsMap->getConcreteTypes()));
+        Parser::setNodeName($classNode->name, $this->generateConcreteClassName($concreteGenericsMap->getConcreteArguments()));
 
         return new ConcreteClass(
-            $this->generateConcreteClassName($concreteGenericsMap->getConcreteTypes()),
-            $this->generateConcreteClassFqn($concreteGenericsMap->getConcreteTypes()),
+            $this->generateConcreteClassName($concreteGenericsMap->getConcreteArguments()),
+            $this->generateConcreteClassFqn($concreteGenericsMap->getConcreteArguments()),
             $ast
         );
     }
 
-    private function handleClass(Node &$node, GenericTypesMap $genericTypesMap, Result $result): void
+    private function handleClass(Node &$node, GenericParametersMap $genericParametersMap, Result $result): void
     {
         if (!Parser::isGenericClass($node)) {
             return;
@@ -219,7 +220,7 @@ class GenericClass
 
         $genericClass = $this->genericClassCache->get($genericClassFqn);
 
-        $arguments = $genericTypesMap->generateFullArgumentsForNewGenericClass((array)Parser::getGenericParameters($node));
+        $arguments = $genericParametersMap->generateFullArgumentsForNewGenericClass((array)Parser::getGenericParameters($node));
 
         $concreteClassCacheKey = $genericClass->getConcreteClassCacheKey($arguments);
         if (!$this->concreteClassCache->has($concreteClassCacheKey)) {

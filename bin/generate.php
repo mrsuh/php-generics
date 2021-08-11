@@ -8,9 +8,22 @@ use Mrsuh\PhpGenerics\Compiler\Printer;
 
 require __DIR__ . '/../vendor/autoload.php';
 
-$sourceDir  = $argv[1];
-$outputDir  = $argv[2];
+$timeStart = microtime(true);
+
+$sourceDir = $argv[1];
+if (empty($sourceDir) || !is_dir($sourceDir)) {
+    exit(1);
+}
+
+$outputDir = $argv[2];
+if (empty($outputDir) || !is_dir($outputDir)) {
+    exit(1);
+}
+
 $psr4Prefix = $argv[3];
+if (empty($psr4Prefix)) {
+    exit(1);
+}
 
 $classLoader = new ClassLoader();
 $classLoader->setPsr4($psr4Prefix, $sourceDir);
@@ -31,7 +44,7 @@ foreach ($result->getConcreteClasses() as $concreteClass) {
 
     printf("  - %s\n", $concreteClass->fqn);
 }
-echo "Generated files containing " . count($result->getConcreteClasses()) . " concrete classes\n";
+$timeFin = microtime(true);
 
-
+printf("Generated %d concrete classes in %.3f seconds, %.3f MB memory used\n", count($result->getConcreteClasses()), $timeFin - $timeStart, memory_get_usage(true) / 1024 / 1024);
 

@@ -3,7 +3,8 @@
 namespace Mrsuh\PhpGenerics\Compiler\ClassFinder;
 
 use Composer\Autoload\ClassLoader;
-use Mrsuh\PhpGenerics\Exception\ClassNotFoundException;
+use Mrsuh\PhpGenerics\Exception\FileEmptyException;
+use Mrsuh\PhpGenerics\Exception\FileNotFoundException;
 use Mrsuh\PhpGenerics\Exception\FileNotReadableException;
 
 class ClassFinder implements ClassFinderInterface
@@ -20,20 +21,20 @@ class ClassFinder implements ClassFinderInterface
         return !empty($this->classLoader->findFile($fqn));
     }
 
-    /**
-     * @throws ClassNotFoundException
-     * @throws FileNotReadableException
-     */
     public function getFileContentByClassFqn(string $fqn): string
     {
         $filePath = $this->classLoader->findFile($fqn);
         if (!$filePath) {
-            throw new ClassNotFoundException(sprintf('Can\'t find class file %s', $fqn));
+            throw new \RuntimeException(sprintf('Can\'t find file for class "%s"', $fqn));
+        }
+
+        if (!is_readable($filePath)) {
+            throw new \RuntimeException(sprintf('Can\'t read file "%s"', $filePath));
         }
 
         $content = file_get_contents($filePath);
-        if ($content === false) {
-            throw new FileNotReadableException(sprintf('Can\'t read class %s from file %s', $fqn, $filePath));
+        if (empty($content)) {
+            throw new \RuntimeException(sprintf('File "%s" has empty content', $filePath));
         }
 
         return $content;

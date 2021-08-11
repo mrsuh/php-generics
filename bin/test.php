@@ -60,4 +60,11 @@ foreach ($directories as $directory) {
     printf("%s - %d concrete classes [%s]\n", $directory->getBasename(), count($result->getConcreteClasses()), ($success ? 'ok' : 'fail'));
 }
 
+if ($allTestsSuccess) {
+    print("\nAll tests passed successfully!\n");
+} else {
+    print("\nThere are some errors\n");
+    exit(1);
+}
+
 exit($allTestsSuccess ? 0 : 1);

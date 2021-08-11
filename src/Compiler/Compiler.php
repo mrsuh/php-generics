@@ -5,7 +5,6 @@ namespace Mrsuh\PhpGenerics\Compiler;
 use Mrsuh\PhpGenerics\Compiler\Cache\ConcreteClassCache;
 use Mrsuh\PhpGenerics\Compiler\Cache\GenericClassCache;
 use Mrsuh\PhpGenerics\Compiler\ClassFinder\ClassFinderInterface;
-use Mrsuh\PhpGenerics\Exception\FileNotReadableException;
 use Symfony\Component\Finder\Finder;
 
 class Compiler
@@ -30,14 +29,19 @@ class Compiler
 
         $result = new Result();
         foreach ($sourceFiles as $sourceFile) {
-            $content = file_get_contents($sourceFile->getRealPath());
 
+            $sourceFilePath = $sourceFile->getRealPath();
+
+            if (!is_readable($sourceFilePath)) {
+                throw new \RuntimeException(sprintf('Can\'t read file "%s"', $sourceFilePath));
+            }
+
+            $content = file_get_contents($sourceFilePath);
             if (empty($content)) {
-                throw new FileNotReadableException('Can\'t read file ' . $sourceFile->getRealPath());
+                throw new \RuntimeException(sprintf('File "%s" has empty content', $sourceFilePath));
             }
 
             $ast = Parser::resolveNames(Parser::parse($content));
-
             if (!Parser::hasGenericClassUsages($ast)) {
                 continue;
             }

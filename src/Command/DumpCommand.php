@@ -23,6 +23,7 @@ class DumpCommand extends BaseCommand
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        $timeStart = microtime(true);
         $this->getIO()->write('<info>Generating concrete classes</info>');
 
         $composer  = $this->getComposer();
@@ -80,7 +81,13 @@ class DumpCommand extends BaseCommand
             }
         }
 
-        $this->getIO()->write('<info>Generated files containing ' . $filesCount . ' concrete classes</info>');
+        $timeFin = microtime(true);
+        $this->getIO()->write(sprintf(
+                "Generated %d concrete classes in %.3f seconds, %.3f MB memory used",
+                $filesCount,
+                $timeFin - $timeStart,
+                memory_get_usage(true) / 1024 / 1024)
+        );
     }
 
     private function getClassLoader(array $autoloads, AutoloadGenerator $autoloadGenerator, Filesystem $filesystem, string $basePath, string $vendorPath): ClassLoader

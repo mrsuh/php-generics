@@ -5,9 +5,9 @@ namespace Mrsuh\PhpGenerics\Compiler;
 use Mrsuh\PhpGenerics\Compiler\ClassFinder\ClassFinderInterface;
 use PhpParser\Node\GenericParameter;
 
-class GenericTypesMap
+class GenericParametersMap
 {
-    private array                $types = [];
+    private array                $parameters = [];
     private ClassFinderInterface $classFinder;
 
     public function __construct(ClassFinderInterface $classFinder)
@@ -24,27 +24,27 @@ class GenericTypesMap
         $map = new self($classFinder);
 
         if (count($arguments) > count($parameters)) {
-            throw new \TypeError('Invalid types count');
+            throw new \TypeError(sprintf('Arguments count "%d" is bigger than parameters count "%d"', count($arguments), count($parameters)));
         }
 
         foreach ($parameters as $index => $genericParameter) {
             $genericParameterName = Parser::getNodeName($genericParameter->name, $classFinder);
 
             if (isset($arguments[$index])) {
-                $concreteType = $arguments[$index];
+                $concreteArgument = $arguments[$index];
             } else {
                 $default = $genericParameter->default;
                 if ($default === null) {
-                    throw new \TypeError('There is no default value for argument ' . ($index + 1));
+                    throw new \TypeError(sprintf('There is no default value for argument "%d"', $index + 1));
                 }
-                $concreteType = Parser::getNodeName($default, $classFinder);
+                $concreteArgument = Parser::getNodeName($default, $classFinder);
             }
 
-            if (empty($concreteType)) {
-                throw new \TypeError('Invalid argument ' . ($index + 1));
+            if (empty($concreteArgument)) {
+                throw new \TypeError(sprintf('Invalid argument %d', $index + 1));
             }
 
-            $map->set($genericParameterName, $concreteType);
+            $map->set($genericParameterName, $concreteArgument);
         }
 
         return $map;
@@ -80,33 +80,33 @@ class GenericTypesMap
         return $genericArguments;
     }
 
-    public function set(string $type, string $concreteType): void
+    public function set(string $parameter, string $argument): void
     {
-        $this->types[$type] = $concreteType;
+        $this->parameters[$parameter] = $argument;
     }
 
-    public function get(string $type): string
+    public function get(string $parameter): string
     {
-        return $this->types[$type] ?? '';
+        return $this->parameters[$parameter] ?? '';
     }
 
-    public function has(string $type): bool
+    public function has(string $parameter): bool
     {
-        return isset($this->types[$type]);
+        return isset($this->parameters[$parameter]);
     }
 
-    public function getConcreteTypes(): array
+    public function getConcreteArguments(): array
     {
-        return array_values($this->types);
+        return array_values($this->parameters);
     }
 
     public function count(): int
     {
-        return count($this->types);
+        return count($this->parameters);
     }
 
     public function all(): array
     {
-        return $this->types;
+        return $this->parameters;
     }
 }

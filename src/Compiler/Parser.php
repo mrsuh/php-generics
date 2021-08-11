@@ -54,7 +54,10 @@ class Parser
         $nodes = self::filter($nodes, $classes);
 
         if (count($nodes) > 1) {
-            throw new \Exception('Nodes more than one');
+            throw new \RuntimeException(sprintf(
+                'AST has more than one node for classes "%s"',
+                implode(', ', $classes)
+            ));
         }
 
         if (count($nodes) === 0) {
@@ -81,7 +84,7 @@ class Parser
             case $node instanceof Node\Identifier:
                 return (string)$node->name;
             default:
-                throw new \TypeError(sprintf('Invalid nodeName class %s', get_class($node)));
+                throw new \TypeError(sprintf('Invalid node name class "%s"', get_class($node)));
         }
     }
 
@@ -99,7 +102,7 @@ class Parser
                 $node->name = $type;
                 break;
             default:
-                throw new \TypeError(sprintf('Invalid node name type %s', get_class($node)));
+                throw new \TypeError(sprintf('Invalid node name class "%s"', get_class($node)));
         }
     }
 
@@ -119,11 +122,11 @@ class Parser
         return isset($builtinTypes[strtolower($type)]);
     }
 
-    public static function setNodeType(Node &$node, GenericTypesMap $genericTypesMap, ClassFinderInterface $classFinder): void
+    public static function setNodeType(Node &$node, GenericParametersMap $genericParametersMap, ClassFinderInterface $classFinder): void
     {
         $currentType = self::getNodeName($node, $classFinder);
-        if ($genericTypesMap->has($currentType)) {
-            self::setNodeName($node, $genericTypesMap->get($currentType));
+        if ($genericParametersMap->has($currentType)) {
+            self::setNodeName($node, $genericParametersMap->get($currentType));
         }
     }
 
@@ -138,7 +141,7 @@ class Parser
             case $node instanceof Node\UnionType:
                 return $node->types;
             default:
-                throw new \TypeError('Invalid type');
+                throw new \TypeError('Invalid node type');
         }
     }
 
