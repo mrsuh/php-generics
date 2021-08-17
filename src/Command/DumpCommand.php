@@ -83,7 +83,7 @@ class DumpCommand extends BaseCommand
 
         $timeFin = microtime(true);
         $this->getIO()->write(sprintf(
-                "Generated %d concrete classes in %.3f seconds, %.3f MB memory used",
+                "<info>Generated %d concrete classes in %.3f seconds, %.3f MB memory used</info>",
                 $filesCount,
                 $timeFin - $timeStart,
                 memory_get_usage(true) / 1024 / 1024)
