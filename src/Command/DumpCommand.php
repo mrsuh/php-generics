@@ -21,7 +21,7 @@ class DumpCommand extends BaseCommand
             ->setDescription('Dumps the concrete class files from generics classes');
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $timeStart = microtime(true);
         $this->getIO()->write('<info>Generating concrete classes</info>');
@@ -67,7 +67,14 @@ class DumpCommand extends BaseCommand
 
             $filesystem->emptyDirectory($cacheDir);
 
-            $result = $compiler->compile($sourceDir);
+            try {
+                $result = $compiler->compile($sourceDir);
+            } catch (\Exception $exception) {
+                $this->getIO()->writeError($exception->getMessage());
+                $this->getIO()->writeError($exception->getTraceAsString());
+
+                return 1;
+            }
 
             foreach ($result->getConcreteClasses() as $concreteClass) {
                 $concreteFilePath = $cacheDir . DIRECTORY_SEPARATOR . ltrim($classFinder->getRelativeFilePathByClassFqn($concreteClass->fqn), DIRECTORY_SEPARATOR);
@@ -88,6 +95,8 @@ class DumpCommand extends BaseCommand
                 $timeFin - $timeStart,
                 memory_get_usage(true) / 1024 / 1024)
         );
+
+        return 0;
     }
 
     private function getClassLoader(array $autoloads, AutoloadGenerator $autoloadGenerator, Filesystem $filesystem, string $basePath, string $vendorPath): ClassLoader

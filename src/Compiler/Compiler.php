@@ -41,13 +41,17 @@ class Compiler
                 throw new \RuntimeException(sprintf('File "%s" has empty content', $sourceFilePath));
             }
 
-            $ast = Parser::resolveNames(Parser::parse($content));
+            try {
+                $ast = Parser::resolveNames(Parser::parse($content));
+            } catch (\Exception $exception) {
+                throw new \RuntimeException(sprintf('Can\'t parse file "%s"', $sourceFilePath), $exception->getCode(), $exception);
+            }
+
             if (!Parser::hasGenericClassUsages($ast)) {
                 continue;
             }
 
-            $usageGenericClass = new GenericClass($this->classFinder, $concreteClassCache, $genericClassCache, $ast);
-
+            $usageGenericClass  = new GenericClass($this->classFinder, $concreteClassCache, $genericClassCache, $ast);
             $usageConcreteClass = $usageGenericClass->generateConcreteClass([], $result);
             $result->addConcreteClass($usageConcreteClass);
         }

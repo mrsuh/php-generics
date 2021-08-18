@@ -152,17 +152,15 @@ class GenericClass
                 }
             }
 
-            if ($classMethodNode->returnType === null) {
-                continue;
-            }
-
-            foreach (Parser::getNodeTypes($classMethodNode->returnType) as &$nodeType) {
-                if (Parser::isGenericClass($nodeType)) {
-                    $this->handleClass($nodeType, $concreteGenericsMap, $result);
-                } else {
-                    Parser::setNodeType($nodeType, $concreteGenericsMap, $this->classFinder);
+            if ($classMethodNode->returnType !== null) {
+                foreach (Parser::getNodeTypes($classMethodNode->returnType) as &$nodeType) {
+                    if (Parser::isGenericClass($nodeType)) {
+                        $this->handleClass($nodeType, $concreteGenericsMap, $result);
+                    } else {
+                        Parser::setNodeType($nodeType, $concreteGenericsMap, $this->classFinder);
+                    }
+                    unset($nodeType);
                 }
-                unset($nodeType);
             }
         }
 
@@ -214,7 +212,11 @@ class GenericClass
         $genericClassFqn = Parser::getNodeName($node, $this->classFinder);
         if (!$this->genericClassCache->has($genericClassFqn)) {
             $genericClassFileContent = $this->classFinder->getFileContentByClassFqn($genericClassFqn);
-            $genericClassAst         = Parser::resolveNames(Parser::parse($genericClassFileContent));
+            try {
+                $genericClassAst = Parser::resolveNames(Parser::parse($genericClassFileContent));
+            } catch (\Exception $exception) {
+                throw new \RuntimeException(sprintf('Can\'t parse class "%s"', $genericClassFqn), $exception->getCode(), $exception);
+            }
             $this->genericClassCache->set($genericClassFqn, new self($this->classFinder, $this->concreteClassCache, $this->genericClassCache, $genericClassAst));
         }
 

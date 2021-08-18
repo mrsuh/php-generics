@@ -37,7 +37,13 @@ foreach ($directories as $directory) {
 
     $compiler = new Compiler($classFinder);
 
-    $result = $compiler->compile($inputDirectory);
+    try {
+        $result = $compiler->compile($inputDirectory);
+    } catch (\Exception $exception) {
+        echo $exception->getMessage() . PHP_EOL;
+        echo $exception->getTraceAsString() . PHP_EOL;
+        exit(1);
+    }
 
     if ($outputFiles->count() !== count($result->getConcreteClasses())) {
         $success = false;
@@ -47,7 +53,14 @@ foreach ($directories as $directory) {
     foreach ($result->getConcreteClasses() as $concreteClass) {
         $concreteFilePath     = $outputDirectory . DIRECTORY_SEPARATOR . ltrim($classFinder->getRelativeFilePathByClassFqn($concreteClass->fqn), DIRECTORY_SEPARATOR);
         $concreteClassContent = file_get_contents($concreteFilePath);
-        $concreteClassAst     = Parser::parse($concreteClassContent);
+        try {
+            $concreteClassAst = Parser::parse($concreteClassContent);
+        } catch (\Exception $exception) {
+            echo sprintf('Parse file "%s" error: "%s"', $concreteFilePath, $exception->getMessage()) . PHP_EOL;
+            echo $exception->getTraceAsString() . PHP_EOL;
+            exit(1);
+        }
+
         if ($printer->printFile($concreteClassAst) !== $printer->printFile($concreteClass->ast)) {
             $success = false;
         }

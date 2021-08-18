@@ -2,6 +2,16 @@
     "name": "php-generics/library",
     "type": "composer-plugin",
     "license": "MIT",
+    "description": "PHP Generics library",
+    "keywords": [
+        "generics"
+    ],
+    "authors": [
+        {
+            "name": "Sukhachev Anton",
+            "email": "mrsuh6@gmail.com"
+        }
+    ],
     "autoload": {
         "psr-4": {
             "Mrsuh\\PhpGenerics\\": "src/"

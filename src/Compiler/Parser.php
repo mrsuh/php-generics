@@ -6,8 +6,13 @@ use Mrsuh\PhpGenerics\Compiler\ClassFinder\ClassFinderInterface;
 use PhpParser\Lexer\Emulative;
 use PhpParser\Node;
 use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Expr\Instanceof_;
 use PhpParser\Node\Expr\New_;
 use PhpParser\Node\Stmt\Class_;
+use PhpParser\Node\Stmt\ClassMethod;
+use PhpParser\Node\Stmt\Interface_;
+use PhpParser\Node\Stmt\Property;
+use PhpParser\Node\Stmt\Trait_;
 use PhpParser\NodeFinder;
 use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor\CloningVisitor;
@@ -84,7 +89,7 @@ class Parser
             case $node instanceof Node\Identifier:
                 return (string)$node->name;
             default:
-                throw new \TypeError(sprintf('Invalid node name class "%s"', get_class($node)));
+                throw new \TypeError(sprintf('Invalid node name class "%s" for getNodeName()', get_class($node)));
         }
     }
 
@@ -102,7 +107,7 @@ class Parser
                 $node->name = $type;
                 break;
             default:
-                throw new \TypeError(sprintf('Invalid node name class "%s"', get_class($node)));
+                throw new \TypeError(sprintf('Invalid node name class "%s" for setNodeName()', get_class($node)));
         }
     }
 
@@ -141,7 +146,7 @@ class Parser
             case $node instanceof Node\UnionType:
                 return $node->types;
             default:
-                throw new \TypeError('Invalid node type');
+                throw new \TypeError(sprintf('Invalid node type "%s" for getNodeTypes()', get_class($node)));
         }
     }
 
@@ -176,34 +181,79 @@ class Parser
      */
     public static function hasGenericClassUsages(array $ast): bool
     {
-        /** @var Class_ $classNode */
-        $classNode = Parser::filterOne($ast, [Class_::class]);
-        if ($classNode !== null) {
+        /** @var Node\Stmt\ClassLike $classNode */
+        $classNode = Parser::filterOne($ast, [Class_::class, Interface_::class, Trait_::class]);
+        if ($classNode === null) {
+            return false;
+        }
 
-            if (Parser::isGenericClass($classNode)) {
-                return false;
+        if (Parser::isGenericClass($classNode)) {
+            return false;
+        }
+
+        if ($classNode instanceof Class_ || $classNode instanceof Interface_) {
+            if ($classNode->extends !== null && Parser::isGenericClass($classNode->extends)) {
+                return true;
             }
+        }
 
-            if ($classNode->extends !== null) {
-                if (Parser::isGenericClass($classNode->extends)) {
-                    return true;
-                }
-            }
-
+        if ($classNode instanceof Class_) {
             foreach ($classNode->implements as $implementNode) {
                 if (Parser::isGenericClass($implementNode)) {
                     return true;
                 }
             }
+        }
 
-            /** @var Node\Stmt\TraitUse[] $traitUseNodes */
-            $traitUseNodes = Parser::filter([$classNode], [Node\Stmt\TraitUse::class]);
-            foreach ($traitUseNodes as $traitUseNode) {
-                foreach ($traitUseNode->traits as $traitNode) {
-                    if (Parser::isGenericClass($traitNode)) {
+        /** @var Node\Stmt\TraitUse[] $traitUseNodes */
+        $traitUseNodes = Parser::filter([$classNode], [Node\Stmt\TraitUse::class]);
+        foreach ($traitUseNodes as $traitUseNode) {
+            foreach ($traitUseNode->traits as $traitNode) {
+                if (Parser::isGenericClass($traitNode)) {
+                    return true;
+                }
+            }
+        }
+
+        /** @var Property[] $propertyNodes */
+        $propertyNodes = Parser::filter([$classNode], [Property::class]);
+        foreach ($propertyNodes as $propertyNode) {
+            if ($propertyNode->type !== null) {
+                foreach (Parser::getNodeTypes($propertyNode->type) as $nodeType) {
+                    if (Parser::isGenericClass($nodeType)) {
                         return true;
                     }
                 }
+            }
+        }
+
+        /** @var ClassMethod[] $classMethodNodes */
+        $classMethodNodes = Parser::filter([$classNode], [ClassMethod::class]);
+        foreach ($classMethodNodes as $classMethodNode) {
+            foreach ($classMethodNode->params as $param) {
+                if ($param->type !== null) {
+                    foreach (Parser::getNodeTypes($param->type) as $nodeType) {
+                        if (Parser::isGenericClass($nodeType)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            if ($classMethodNode->returnType !== null) {
+                foreach (Parser::getNodeTypes($classMethodNode->returnType) as $nodeType) {
+                    if (Parser::isGenericClass($nodeType)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        /** @var Instanceof_[] $newExprNodes */
+        $instanceofExprNodes = Parser::filter([$classNode], [Instanceof_::class]);
+        foreach ($instanceofExprNodes as $instanceofExprNode) {
+            if (Parser::isGenericClass($instanceofExprNode->class)) {
+                return true;
             }
         }
 

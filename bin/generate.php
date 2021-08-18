@@ -12,16 +12,19 @@ $timeStart = microtime(true);
 
 $sourceDir = $argv[1];
 if (empty($sourceDir) || !is_dir($sourceDir)) {
+    echo "Source directory doesn't exists\n";
     exit(1);
 }
 
 $outputDir = $argv[2];
 if (empty($outputDir) || !is_dir($outputDir)) {
+    echo "Output directory doesn't exists\n";
     exit(1);
 }
 
 $psr4Prefix = $argv[3];
 if (empty($psr4Prefix)) {
+    echo "Invalid prefix\n";
     exit(1);
 }
 
@@ -36,7 +39,14 @@ $filesystem->ensureDirectoryExists($outputDir);
 
 $compiler = new Compiler($classFinder);
 
-$result = $compiler->compile($sourceDir);
+try {
+    $result = $compiler->compile($sourceDir);
+} catch (\Exception $exception) {
+    echo $exception->getMessage() . PHP_EOL;
+    echo $exception->getTraceAsString() . PHP_EOL;
+    exit(1);
+}
+
 foreach ($result->getConcreteClasses() as $concreteClass) {
     $concreteFilePath = $outputDir . DIRECTORY_SEPARATOR . ltrim($classFinder->getRelativeFilePathByClassFqn($concreteClass->fqn), DIRECTORY_SEPARATOR);
     $filesystem->ensureDirectoryExists(dirname($concreteFilePath));
