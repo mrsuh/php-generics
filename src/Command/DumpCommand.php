@@ -70,8 +70,8 @@ class DumpCommand extends BaseCommand
             try {
                 $result = $compiler->compile($sourceDir);
             } catch (\Exception $exception) {
-                $this->getIO()->writeError($exception->getMessage());
-                $this->getIO()->writeError($exception->getTraceAsString());
+                $this->getIO()->writeError(sprintf("<error>%s</error>", $exception->getMessage()));
+                $this->getIO()->writeError(sprintf("<error>%s</error>", $exception->getTraceAsString()));
 
                 return 1;
             }
