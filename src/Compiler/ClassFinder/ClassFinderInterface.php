@@ -9,4 +9,6 @@ interface ClassFinderInterface
     public function isFileExistsByClassFqn(string $fqn): bool;
 
     public function getRelativeFilePathByClassFqn(string $fqn): string;
+
+    public function getCacheAbsoluteFilePathByClassFqn(string $fqn): string;
 }

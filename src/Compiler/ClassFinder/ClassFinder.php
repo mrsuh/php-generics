@@ -49,4 +49,26 @@ class ClassFinder implements ClassFinderInterface
 
         return str_replace('\\', DIRECTORY_SEPARATOR, $fqn) . '.php';
     }
+
+    public function getCacheAbsoluteFilePathByClassFqn(string $fqn): string
+    {
+        $prefixInfo = $this->findPrefixInfoByClassFqn($fqn);
+
+        return $prefixInfo['directories'][0] . '/' . str_replace($prefixInfo['prefix'], '', $fqn) . '.php';
+    }
+
+    private function findPrefixInfoByClassFqn(string $fqn): array
+    {
+        $prefixLegnth = 0;
+        $info         = [];
+        $psr4Prefixes = $this->classLoader->getPrefixesPsr4();
+        foreach ($psr4Prefixes as $prefix => $directories) {
+            if (strpos($fqn, $prefix) === 0 && strlen($prefix) > $prefixLegnth) {
+                $prefixLegnth = strlen($prefix);
+                $info         = ['prefix' => $prefix, 'directories' => $directories];
+            }
+        }
+
+        return $info;
+    }
 }

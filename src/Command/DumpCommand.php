@@ -80,7 +80,7 @@ class DumpCommand extends BaseCommand
             }
 
             foreach ($result->getConcreteClasses() as $concreteClass) {
-                $concreteFilePath = $cacheDir . DIRECTORY_SEPARATOR . ltrim($classFinder->getRelativeFilePathByClassFqn($concreteClass->fqn), DIRECTORY_SEPARATOR);
+                $concreteFilePath = $classFinder->getCacheAbsoluteFilePathByClassFqn($concreteClass->fqn);
                 $filesystem->ensureDirectoryExists(dirname($concreteFilePath));
                 file_put_contents($concreteFilePath, $printer->printFile($concreteClass->ast));
                 $filesCount++;
