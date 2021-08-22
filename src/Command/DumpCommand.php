@@ -85,7 +85,7 @@ class DumpCommand extends BaseCommand
                     $emptiedCacheDirectories[$cacheDirectory] = true;
                 }
 
-                $concreteFilePath = $cacheDirectory . DIRECTORY_SEPARATOR . $classFinder->getCacheRelativeFilePathByClassFqn($concreteClass->fqn);
+                $concreteFilePath = rtrim($cacheDirectory, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . ltrim($classFinder->getCacheRelativeFilePathByClassFqn($concreteClass->fqn), DIRECTORY_SEPARATOR);
                 $filesystem->ensureDirectoryExists(dirname($concreteFilePath));
                 file_put_contents($concreteFilePath, $printer->printFile($concreteClass->ast));
                 $filesCount++;

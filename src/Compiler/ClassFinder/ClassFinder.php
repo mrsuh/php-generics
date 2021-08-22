@@ -44,14 +44,14 @@ class ClassFinder implements ClassFinderInterface
     {
         $prefixInfo = $this->findPrefixInfoByClassFqn($fqn);
 
-        return $prefixInfo['directories'][0];
+        return str_replace($prefixInfo['prefix'], '', $fqn) . '.php';
     }
 
     public function getCacheDirectoryByClassFqn(string $fqn): string
     {
         $prefixInfo = $this->findPrefixInfoByClassFqn($fqn);
 
-        return str_replace($prefixInfo['prefix'], '', $fqn) . '.php';
+        return $prefixInfo['directories'][0];
     }
 
     private function findPrefixInfoByClassFqn(string $fqn): array
