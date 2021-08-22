@@ -52,6 +52,8 @@ class DumpCommand extends BaseCommand
         $printer  = new Printer();
         $compiler = new Compiler($classFinder);
 
+        $emptiedCacheDirectories = [];
+
         $filesCount = 0;
         foreach ($autoloads['psr-4'] as $paths) {
             if (count($paths) !== 2) {
@@ -62,10 +64,7 @@ class DumpCommand extends BaseCommand
                 $exportedPaths[] = $autoloadGenerator->getAbsolutePath($filesystem, $basePath, $vendorPath, $path);
             }
 
-            $cacheDir  = $exportedPaths[0];
             $sourceDir = $exportedPaths[1];
-
-            $filesystem->emptyDirectory($cacheDir);
 
             try {
                 $result = $compiler->compile($sourceDir);
@@ -80,7 +79,13 @@ class DumpCommand extends BaseCommand
             }
 
             foreach ($result->getConcreteClasses() as $concreteClass) {
-                $concreteFilePath = $classFinder->getCacheAbsoluteFilePathByClassFqn($concreteClass->fqn);
+                $cacheDirectory = $classFinder->getCacheDirectoryByClassFqn($concreteClass->fqn);
+                if (array_key_exists($cacheDirectory, $emptiedCacheDirectories)) {
+                    $filesystem->emptyDirectory($cacheDirectory);
+                    $emptiedCacheDirectories[$cacheDirectory] = true;
+                }
+
+                $concreteFilePath = $cacheDirectory . DIRECTORY_SEPARATOR . $classFinder->getCacheRelativeFilePathByClassFqn($concreteClass->fqn);
                 $filesystem->ensureDirectoryExists(dirname($concreteFilePath));
                 file_put_contents($concreteFilePath, $printer->printFile($concreteClass->ast));
                 $filesCount++;
