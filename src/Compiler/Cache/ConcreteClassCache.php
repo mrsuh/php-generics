@@ -2,7 +2,7 @@
 
 namespace Mrsuh\PhpGenerics\Compiler\Cache;
 
-use Mrsuh\PhpGenerics\Compiler\ConcreteClass;
+use Mrsuh\PhpGenerics\Compiler\Generic\ConcreteClass;
 
 class ConcreteClassCache
 {

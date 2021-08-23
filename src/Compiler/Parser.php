@@ -3,6 +3,7 @@
 namespace Mrsuh\PhpGenerics\Compiler;
 
 use Mrsuh\PhpGenerics\Compiler\ClassFinder\ClassFinderInterface;
+use Mrsuh\PhpGenerics\Compiler\Generic\GenericParametersMap;
 use PhpParser\Lexer\Emulative;
 use PhpParser\Node;
 use PhpParser\Node\Expr\ClassConstFetch;
@@ -91,7 +92,7 @@ class Parser
         switch (true) {
             case $node instanceof Node\Name:
                 $fqn = $node->toString();
-                if ($classFinder->isFileExistsByClassFqn($fqn)) {
+                if ($classFinder->isSourceFileExistsByClassFqn($fqn)) {
                     return $fqn;
                 }
 

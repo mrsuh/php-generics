@@ -3,9 +3,6 @@
 namespace Mrsuh\PhpGenerics\Compiler\ClassFinder;
 
 use Composer\Autoload\ClassLoader;
-use Mrsuh\PhpGenerics\Exception\FileEmptyException;
-use Mrsuh\PhpGenerics\Exception\FileNotFoundException;
-use Mrsuh\PhpGenerics\Exception\FileNotReadableException;
 
 class ClassFinder implements ClassFinderInterface
 {
@@ -16,12 +13,7 @@ class ClassFinder implements ClassFinderInterface
         $this->classLoader = $classLoader;
     }
 
-    public function isFileExistsByClassFqn(string $fqn): bool
-    {
-        return !empty($this->classLoader->findFile($fqn));
-    }
-
-    public function getFileContentByClassFqn(string $fqn): string
+    public function getSourceFileContentByClassFqn(string $fqn): string
     {
         $filePath = $this->classLoader->findFile($fqn);
         if (!$filePath) {
@@ -44,32 +36,45 @@ class ClassFinder implements ClassFinderInterface
         return $content;
     }
 
+    public function isSourceFileExistsByClassFqn(string $fqn): bool
+    {
+        return !empty($this->classLoader->findFile($fqn));
+    }
+
     public function getCacheRelativeFilePathByClassFqn(string $fqn): string
     {
-        $prefixInfo = $this->findPrefixInfoByClassFqn($fqn);
+        $package = $this->findPrefixInfoByClassFqn($fqn);
 
-        return str_replace([$prefixInfo['prefix'], '\\'], ['', DIRECTORY_SEPARATOR], $fqn) . '.php';
+        return str_replace([$package->getPrefix(), '\\'], ['', DIRECTORY_SEPARATOR], $fqn) . '.php';
     }
 
     public function getCacheDirectoryByClassFqn(string $fqn): string
     {
-        $prefixInfo = $this->findPrefixInfoByClassFqn($fqn);
+        $package = $this->findPrefixInfoByClassFqn($fqn);
 
-        return $prefixInfo['directories'][0];
+        if (count($package->getDirectories()) < 2) {
+            throw new \RuntimeException(sprintf('PSR4 package "%s" hasn\'t cache directory', $package->getPrefix()));
+        }
+
+        return $package->getDirectories()[0];
     }
 
-    private function findPrefixInfoByClassFqn(string $fqn): array //@todo
+    private function findPrefixInfoByClassFqn(string $fqn): Package
     {
-        $prefixLegnth = 0;
-        $info         = [];
+        $prefixLength = 0;
+        $package      = null;
         $psr4Prefixes = $this->classLoader->getPrefixesPsr4();
         foreach ($psr4Prefixes as $prefix => $directories) {
-            if (strpos($fqn, $prefix) === 0 && strlen($prefix) > $prefixLegnth) {
-                $prefixLegnth = strlen($prefix);
-                $info         = ['prefix' => $prefix, 'directories' => $directories];
+            if (strpos($fqn, $prefix) === 0 && strlen($prefix) > $prefixLength) {
+                $prefixLength = strlen($prefix);
+                $package      = new Package($prefix, $directories);
             }
         }
 
-        return $info;
+        if ($package === null) {
+            throw new \RuntimeException(sprintf('Can\'t find PSR4 package for class "%s"', $fqn));
+        }
+
+        return $package;
     }
 }

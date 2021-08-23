@@ -5,6 +5,7 @@ namespace Mrsuh\PhpGenerics\Compiler;
 use Mrsuh\PhpGenerics\Compiler\Cache\ConcreteClassCache;
 use Mrsuh\PhpGenerics\Compiler\Cache\GenericClassCache;
 use Mrsuh\PhpGenerics\Compiler\ClassFinder\ClassFinderInterface;
+use Mrsuh\PhpGenerics\Compiler\Generic\GenericClass;
 use Symfony\Component\Finder\Finder;
 
 class Compiler

@@ -2,6 +2,8 @@
 
 namespace Mrsuh\PhpGenerics\Compiler;
 
+use Mrsuh\PhpGenerics\Compiler\Generic\ConcreteClass;
+
 class Result
 {
     /** @var ConcreteClass[] */

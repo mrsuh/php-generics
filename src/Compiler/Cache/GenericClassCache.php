@@ -2,7 +2,7 @@
 
 namespace Mrsuh\PhpGenerics\Compiler\Cache;
 
-use Mrsuh\PhpGenerics\Compiler\GenericClass;
+use Mrsuh\PhpGenerics\Compiler\Generic\GenericClass;
 
 class GenericClassCache
 {

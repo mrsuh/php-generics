@@ -1,10 +1,12 @@
 <?php
 
-namespace Mrsuh\PhpGenerics\Compiler;
+namespace Mrsuh\PhpGenerics\Compiler\Generic;
 
 use Mrsuh\PhpGenerics\Compiler\Cache\ConcreteClassCache;
 use Mrsuh\PhpGenerics\Compiler\Cache\GenericClassCache;
 use Mrsuh\PhpGenerics\Compiler\ClassFinder\ClassFinderInterface;
+use Mrsuh\PhpGenerics\Compiler\Parser;
+use Mrsuh\PhpGenerics\Compiler\Result;
 use PhpParser\Node;
 use PhpParser\Node\Expr\ClassConstFetch;
 use PhpParser\Node\Expr\Instanceof_;
@@ -212,7 +214,7 @@ class GenericClass
 
         $genericClassFqn = Parser::getNodeName($node, $this->classFinder);
         if (!$this->genericClassCache->has($genericClassFqn)) {
-            $genericClassFileContent = $this->classFinder->getFileContentByClassFqn($genericClassFqn);
+            $genericClassFileContent = $this->classFinder->getSourceFileContentByClassFqn($genericClassFqn);
             try {
                 $genericClassAst = Parser::resolveNames(Parser::parse($genericClassFileContent));
             } catch (\Exception $exception) {
