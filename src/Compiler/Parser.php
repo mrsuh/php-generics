@@ -29,6 +29,10 @@ class Parser
         return $parser->parse($code);
     }
 
+    /**
+     * @param Node[] $nodes
+     * @return Node[]
+     */
     public static function resolveNames(array $nodes): array
     {
         $nameResolver = new NameResolver(null, [
@@ -41,6 +45,11 @@ class Parser
         return $nodeTraverser->traverse($nodes);
     }
 
+    /**
+     * @param Node[]   $nodes
+     * @param string[] $classes
+     * @return Node[]
+     */
     public static function filter(array $nodes, array $classes): array
     {
         return (new NodeFinder())->find($nodes, function (Node $node) use ($classes): bool {
@@ -54,6 +63,11 @@ class Parser
         });
     }
 
+    /**
+     * @param Node[]   $nodes
+     * @param string[] $classes
+     * @return Node|null
+     */
     public static function filterOne(array $nodes, array $classes): ?Node
     {
         $nodes = self::filter($nodes, $classes);
@@ -150,6 +164,10 @@ class Parser
         }
     }
 
+    /**
+     * @param Node[] $ast
+     * @return Node[]
+     */
     public static function cloneAst(array $ast): array
     {
         $nodeTraverser = new NodeTraverser();

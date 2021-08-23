@@ -51,7 +51,7 @@ foreach ($directories as $directory) {
     }
 
     foreach ($result->getConcreteClasses() as $concreteClass) {
-        $concreteFilePath     = $outputDirectory . DIRECTORY_SEPARATOR . ltrim($classFinder->getRelativeFilePathByClassFqn($concreteClass->fqn), DIRECTORY_SEPARATOR);
+        $concreteFilePath     = $outputDirectory . DIRECTORY_SEPARATOR . ltrim($classFinder->getCacheRelativeFilePathByClassFqn($concreteClass->fqn), DIRECTORY_SEPARATOR);
         $concreteClassContent = file_get_contents($concreteFilePath);
         try {
             $concreteClassAst = Parser::parse($concreteClassContent);

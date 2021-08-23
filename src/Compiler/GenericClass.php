@@ -27,7 +27,8 @@ class GenericClass
     private array  $parameters;
     private string $name;
     private string $namespace;
-    private array  $ast;
+    /** @var Node[] */
+    private array $ast;
 
     /**
      * @param Node[] $ast

@@ -14,7 +14,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class DumpCommand extends BaseCommand
 {
-    protected function configure()
+    protected function configure(): void
     {
         $this
             ->setName('dump-generics')
@@ -87,7 +87,9 @@ class DumpCommand extends BaseCommand
 
                 $concreteFilePath = rtrim($cacheDirectory, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . ltrim($classFinder->getCacheRelativeFilePathByClassFqn($concreteClass->fqn), DIRECTORY_SEPARATOR);
                 $filesystem->ensureDirectoryExists(dirname($concreteFilePath));
-                file_put_contents($concreteFilePath, $printer->printFile($concreteClass->ast));
+                if (file_put_contents($concreteFilePath, $printer->printFile($concreteClass->ast)) === false) {
+                    throw new \RuntimeException(sprintf('Can\'t write into file "%s"', $concreteFilePath));
+                }
                 $filesCount++;
 
                 if ($this->getIO()->isVerbose()) {

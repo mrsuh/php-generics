@@ -33,10 +33,14 @@ class Compiler
             $sourceFilePath = $sourceFile->getRealPath();
 
             if (!is_readable($sourceFilePath)) {
-                throw new \RuntimeException(sprintf('Can\'t read file "%s"', $sourceFilePath));
+                throw new \RuntimeException(sprintf('File "%s" is not readable', $sourceFilePath));
             }
 
             $content = file_get_contents($sourceFilePath);
+            if ($content === false) {
+                throw new \RuntimeException(sprintf('Can\t read file "%s"', $sourceFilePath));
+            }
+
             if (empty($content)) {
                 throw new \RuntimeException(sprintf('File "%s" has empty content', $sourceFilePath));
             }

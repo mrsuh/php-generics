@@ -48,7 +48,7 @@ try {
 }
 
 foreach ($result->getConcreteClasses() as $concreteClass) {
-    $concreteFilePath = $outputDir . DIRECTORY_SEPARATOR . ltrim($classFinder->getRelativeFilePathByClassFqn($concreteClass->fqn), DIRECTORY_SEPARATOR);
+    $concreteFilePath = $outputDir . DIRECTORY_SEPARATOR . ltrim($classFinder->getCacheRelativeFilePathByClassFqn($concreteClass->fqn), DIRECTORY_SEPARATOR);
     $filesystem->ensureDirectoryExists(dirname($concreteFilePath));
     file_put_contents($concreteFilePath, $printer->printFile($concreteClass->ast));
 

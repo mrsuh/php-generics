@@ -29,10 +29,14 @@ class ClassFinder implements ClassFinderInterface
         }
 
         if (!is_readable($filePath)) {
-            throw new \RuntimeException(sprintf('Can\'t read file "%s"', $filePath));
+            throw new \RuntimeException(sprintf('File "%s" is not readable', $filePath));
         }
 
         $content = file_get_contents($filePath);
+        if ($content === false) {
+            throw new \RuntimeException(sprintf('Can\t read file "%s"', $filePath));
+        }
+
         if (empty($content)) {
             throw new \RuntimeException(sprintf('File "%s" has empty content', $filePath));
         }
@@ -44,7 +48,7 @@ class ClassFinder implements ClassFinderInterface
     {
         $prefixInfo = $this->findPrefixInfoByClassFqn($fqn);
 
-        return str_replace($prefixInfo['prefix'], '', $fqn) . '.php';
+        return str_replace([$prefixInfo['prefix'], '\\'], ['', DIRECTORY_SEPARATOR], $fqn) . '.php';
     }
 
     public function getCacheDirectoryByClassFqn(string $fqn): string
@@ -54,7 +58,7 @@ class ClassFinder implements ClassFinderInterface
         return $prefixInfo['directories'][0];
     }
 
-    private function findPrefixInfoByClassFqn(string $fqn): array
+    private function findPrefixInfoByClassFqn(string $fqn): array //@todo
     {
         $prefixLegnth = 0;
         $info         = [];

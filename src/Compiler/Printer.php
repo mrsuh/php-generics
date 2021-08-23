@@ -2,6 +2,7 @@
 
 namespace Mrsuh\PhpGenerics\Compiler;
 
+use PhpParser\Node;
 use PhpParser\PrettyPrinter\Standard;
 
 class Printer
@@ -13,6 +14,10 @@ class Printer
         $this->prettyPrinter = new Standard();
     }
 
+    /**
+     * @param Node[] $ast
+     * @return string
+     */
     public function printFile(array $ast): string
     {
         return $this->prettyPrinter->prettyPrintFile($ast);
