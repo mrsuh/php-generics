@@ -93,7 +93,11 @@ class DumpCommand extends BaseCommand
                 $filesCount++;
 
                 if ($this->getIO()->isVerbose()) {
-                    $this->getIO()->write(sprintf('  - %s', $concreteClass->fqn));
+                    $line = sprintf('  - %s', $concreteClass->fqn);
+                    if ($this->getIO()->isVeryVerbose()) {
+                        $line .= sprintf(' <comment>%s</comment>', $concreteFilePath);
+                    }
+                    $this->getIO()->write($line);
                 }
             }
         }
