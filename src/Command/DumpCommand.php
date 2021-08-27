@@ -34,8 +34,19 @@ class DumpCommand extends BaseCommand
 
         $localConfig = $composer->getConfig();
 
-        $localPsr4Paths = $localPackage->getAutoload()['psr-4'];
-        if (count($localPsr4Paths) < 2) {
+        $localPsr4Autoload = $localPackage->getAutoload()['psr-4'] ?? [];
+        $hasCacheDirectory = false;
+        foreach ($localPsr4Autoload as $directories) {
+            if (!is_array($directories)) {
+                continue;
+            }
+            if (count($directories) < 2) {
+                continue;
+            }
+            $hasCacheDirectory = true;
+            break;
+        }
+        if (!$hasCacheDirectory) {
             $this->getIO()->writeError("<bg=red>You must set cache directory</>");
 
             return 1;
@@ -97,55 +108,65 @@ class DumpCommand extends BaseCommand
 
         $filesCount = 0;
 
-        $sourceDirectory = $filesystem->normalizePath($basePath . '/' . $localPsr4Paths[1]);
-        $cacheDirectory  = $filesystem->normalizePath($basePath . '/' . $localPsr4Paths[0]);
-        $filesystem->emptyDirectory($cacheDirectory);
+        foreach ($localPsr4Autoload as $directories) {
+            if (!is_array($directories)) {
+                continue;
+            }
 
-        try {
-            $result = $compiler->compile($sourceDirectory);
+            if (count($directories) < 2) {
+                continue;
+            }
 
-            foreach ($result->getConcreteClasses() as $concreteClass) {
-                $genericFilePath = $classLoader->findFile($concreteClass->genericFqn);
-                if (!$genericFilePath) {
-                    throw new \RuntimeException(sprintf('Can\'t find file for class "%s"', $concreteClass->genericFqn));
-                }
+            $sourceDirectory = $filesystem->normalizePath($basePath . '/' . $directories[1]);
+            $cacheDirectory  = $filesystem->normalizePath($basePath . '/' . $directories[0]);
+            $filesystem->emptyDirectory($cacheDirectory);
 
-                $package = self::findPackageByFilePath($genericPackages, $genericFilePath);
-                if ($package === null) {
-                    throw new \RuntimeException(sprintf('Can\'t find package for file "%s"', $genericFilePath));
-                }
+            try {
+                $result = $compiler->compile($sourceDirectory);
 
-                $cacheDirectory = $package->getCacheDirectory($genericFilePath);
-
-                if (array_key_exists($cacheDirectory, $emptiedCacheDirectories)) {
-                    $filesystem->emptyDirectory($cacheDirectory);
-                    $emptiedCacheDirectories[$cacheDirectory] = true;
-                }
-
-                $concreteFilePath = rtrim($cacheDirectory, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . ltrim($package->getRelativeFilePathByClassFqn($concreteClass->fqn), DIRECTORY_SEPARATOR);
-                $filesystem->ensureDirectoryExists(dirname($concreteFilePath));
-                if (file_put_contents($concreteFilePath, $printer->printFile($concreteClass->ast)) === false) {
-                    throw new \RuntimeException(sprintf('Can\'t write into file "%s"', $concreteFilePath));
-                }
-                $filesCount++;
-
-                if ($this->getIO()->isVerbose()) {
-                    $line = sprintf('  - %s', $concreteClass->fqn);
-                    if ($this->getIO()->isVeryVerbose()) {
-                        $line .= sprintf(' <comment>%s</comment>', $concreteFilePath);
+                foreach ($result->getConcreteClasses() as $concreteClass) {
+                    $genericFilePath = $classLoader->findFile($concreteClass->genericFqn);
+                    if (!$genericFilePath) {
+                        throw new \RuntimeException(sprintf('Can\'t find file for class "%s"', $concreteClass->genericFqn));
                     }
-                    $this->getIO()->write($line);
+
+                    $package = self::findPackageByFilePath($genericPackages, $genericFilePath);
+                    if ($package === null) {
+                        throw new \RuntimeException(sprintf('Can\'t find package for file "%s"', $genericFilePath));
+                    }
+
+                    $cacheDirectory = $package->getCacheDirectory($genericFilePath);
+
+                    if (array_key_exists($cacheDirectory, $emptiedCacheDirectories)) {
+                        $filesystem->emptyDirectory($cacheDirectory);
+                        $emptiedCacheDirectories[$cacheDirectory] = true;
+                    }
+
+                    $concreteFilePath = rtrim($cacheDirectory, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . ltrim($package->getRelativeFilePathByClassFqn($concreteClass->fqn), DIRECTORY_SEPARATOR);
+                    $filesystem->ensureDirectoryExists(dirname($concreteFilePath));
+                    if (file_put_contents($concreteFilePath, $printer->printFile($concreteClass->ast)) === false) {
+                        throw new \RuntimeException(sprintf('Can\'t write into file "%s"', $concreteFilePath));
+                    }
+                    $filesCount++;
+
+                    if ($this->getIO()->isVerbose()) {
+                        $line = sprintf('  - %s', $concreteClass->fqn);
+                        if ($this->getIO()->isVeryVerbose()) {
+                            $line .= sprintf(' <comment>%s</comment>', $concreteFilePath);
+                        }
+                        $this->getIO()->write($line);
+                    }
                 }
-            }
 
-        } catch (\Exception $exception) {
-            $this->getIO()->writeError(sprintf("<bg=red>%s</>", $exception->getMessage()));
-            if ($exception->getPrevious() !== null) {
-                $this->getIO()->writeError(sprintf("<bg=red>%s</>", $exception->getPrevious()->getMessage()));
-            }
-            $this->getIO()->writeError(sprintf("<bg=red>%s</>", $exception->getTraceAsString()));
+            } catch (\Exception $exception) {
+                $this->getIO()->writeError(sprintf("<bg=red>%s</>", $exception->getMessage()));
+                if ($exception->getPrevious() !== null) {
+                    $this->getIO()->writeError(sprintf("<bg=red>%s</>", $exception->getPrevious()->getMessage()));
+                }
+                $this->getIO()->writeError(sprintf("<bg=red>%s</>", $exception->getTraceAsString()));
 
-            return 1;
+                return 1;
+            }
         }
 
         $timeFin = microtime(true);
