@@ -92,7 +92,7 @@ class Parser
         switch (true) {
             case $node instanceof Node\Name:
                 $fqn = $node->toString();
-                if ($classFinder->isSourceFileExistsByClassFqn($fqn)) {
+                if ($classFinder->isFileExists($fqn)) {
                     return $fqn;
                 }
 

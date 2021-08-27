@@ -13,7 +13,7 @@ class ClassFinder implements ClassFinderInterface
         $this->classLoader = $classLoader;
     }
 
-    public function getSourceFileContentByClassFqn(string $fqn): string
+    public function getFileContent(string $fqn): string
     {
         $filePath = $this->classLoader->findFile($fqn);
         if (!$filePath) {
@@ -36,45 +36,8 @@ class ClassFinder implements ClassFinderInterface
         return $content;
     }
 
-    public function isSourceFileExistsByClassFqn(string $fqn): bool
+    public function isFileExists(string $fqn): bool
     {
         return !empty($this->classLoader->findFile($fqn));
-    }
-
-    public function getCacheRelativeFilePathByClassFqn(string $fqn): string
-    {
-        $package = $this->findPrefixInfoByClassFqn($fqn);
-
-        return str_replace([$package->getPrefix(), '\\'], ['', DIRECTORY_SEPARATOR], $fqn) . '.php';
-    }
-
-    public function getCacheDirectoryByClassFqn(string $fqn): string
-    {
-        $package = $this->findPrefixInfoByClassFqn($fqn);
-
-        if (count($package->getDirectories()) < 2) {
-            throw new \RuntimeException(sprintf('PSR4 package "%s" hasn\'t cache directory', $package->getPrefix()));
-        }
-
-        return $package->getDirectories()[0];
-    }
-
-    private function findPrefixInfoByClassFqn(string $fqn): Package
-    {
-        $prefixLength = 0;
-        $package      = null;
-        $psr4Prefixes = $this->classLoader->getPrefixesPsr4();
-        foreach ($psr4Prefixes as $prefix => $directories) {
-            if (strpos($fqn, $prefix) === 0 && strlen($prefix) > $prefixLength) {
-                $prefixLength = strlen($prefix);
-                $package      = new Package($prefix, $directories);
-            }
-        }
-
-        if ($package === null) {
-            throw new \RuntimeException(sprintf('Can\'t find PSR4 package for class "%s"', $fqn));
-        }
-
-        return $package;
     }
 }

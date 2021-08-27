@@ -1,61 +1,77 @@
-# Native PHP Generics
+# PHP generics written in PHP
 
 ## Require
-* php >= 7.4
-* composer
 
-## Installation
+* PHP >= 7.4
+* Composer (PSR-4 Autoload)
+
+## Quick start
+
+Install library
 ```bash
 composer require mrsuh/php-generics
 ```
 
-## Quick start
+Add cache directory to autoload
+composer.json
+```json
+{
+    "autoload": { 
+        "psr-4": {
+            "App\\": ["cache/","src/"]
+        }
+    }
+}
+```
 
-Generic.php
+Add Generic class
+src/Box.php
 ```php
 <?php
 
 namespace App;
 
 class Box<T> {
-    private T $content;
-    
-    public function setContent(T $content) {
-        $this->content = $content;
+
+    private ?T $data = null;
+
+    public function set(T $data): void {
+        $this->data = $data;
     }
-    
-    public function getContent(): T {
-        return $this->content;
+
+    public function get(): ?T {
+        return $this->data;
     }
 }
 ```
-
-Usage.php
+Add Usage generic class
+src/Usage.php
 ```php
 <?php
 
 namespace App;
 
 class Usage {
-    public function run() {
+
+    public function run(): void
+    {
         $stringBox = new Box<string>();
-        $stringBox->setContent('cat'); 
-        var_dump($stringBox->getContent()); // string "cat"
+        $stringBox->set('cat');
+        var_dump($stringBox->get()); // string "cat"
 
-        $intBox = new Box<int>(); 
-        $intBox->setContent(1);
-        var_dump($intBox->getContent()); // integer 1
-
-        $stringBox->setContent(1); // TypeError
+        $intBox = new Box<int>();
+        $intBox->set(1);
+        var_dump($intBox->get()); // integer 1
     }
 }
 ```
 
-index.php
+Add test with Usage class and composer autoload
+bin/test.php
 ```php
 <?php
 
-require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__ . '/../vendor/autoload.php';
 
 use App\Usage;
 
@@ -63,9 +79,37 @@ $usage = new Usage();
 $usage->run();
 ```
 
+Generate concrete classes from generics
 ```bash
-php index.php
-string "cat"
-integer 1
-TypeError
+composer dump-generics -v
+```
+
+Dump autoload classes
+```bash
+composer dump-autoload
+```
+
+Run bin/test.php script
+```bash
+php bin/test.php
+```
+
+## Tests
+
+### How to run tests?
+```bash
+php bin/test.php
+```
+
+### How to add test?
++ Add directory 00-your-dir-name to ./tests
+
++ Generate output files and check it
+```bash
+php bin/generate.php tests/000-your-dir-name/input tests/000-your-dir-name/output 'Test\'
+```
+
++ Test output files
+```bash
+php bin/test.php
 ```

@@ -2,11 +2,11 @@
 
 namespace Mrsuh\PhpGenerics\Command;
 
-use Composer\Autoload\ClassLoader;
 use Composer\Command\BaseCommand;
+use Composer\Repository\InstalledRepository;
 use Composer\Util\Filesystem;
-use Mrsuh\PhpGenerics\Autoload\AutoloadGenerator;
 use Mrsuh\PhpGenerics\Compiler\ClassFinder\ClassFinder;
+use Mrsuh\PhpGenerics\Compiler\ClassFinder\Package;
 use Mrsuh\PhpGenerics\Compiler\Compiler;
 use Mrsuh\PhpGenerics\Compiler\Printer;
 use Symfony\Component\Console\Input\InputInterface;
@@ -24,29 +24,70 @@ class DumpCommand extends BaseCommand
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $timeStart = microtime(true);
+
+        $composer     = $this->getComposer();
+        $localRepo    = $composer->getRepositoryManager()->getLocalRepository();
+        $localPackage = $composer->getPackage();
+
+        $libraryPackage = $localRepo->findPackage('php-generics/library', '*');
+        $this->getIO()->write(sprintf('<info>%s</info> <comment>%s</comment>', $libraryPackage->getName(), $libraryPackage->getPrettyVersion()));
+
+        $localConfig = $composer->getConfig();
+
+        $localPsr4Paths = $localPackage->getAutoload()['psr-4'];
+        if (count($localPsr4Paths) < 2) {
+            $this->getIO()->writeError("<bg=red>You must set cache directory</>");
+
+            return 1;
+        }
+
+        $genericPackages = [];
+        $installedRepo   = new InstalledRepository([$composer->getRepositoryManager()->getLocalRepository()]);
+        foreach ($installedRepo->getRepositories() as $repository) {
+            foreach ($repository->getPackages() as $package) {
+                $packageAutoload     = $package->getAutoload();
+                $packagePsr4Autoload = $packageAutoload['psr-4'] ?? [];
+                $hasCacheDirectory   = false;
+                foreach ($packagePsr4Autoload as $directories) {
+                    if (!is_array($directories)) {
+                        continue;
+                    }
+
+                    if (count($directories) < 2) {
+                        continue;
+                    }
+
+                    $hasCacheDirectory = true;
+                    break;
+                }
+
+                if ($hasCacheDirectory) {
+                    $genericPackages[] = new Package(
+                        $composer->getInstallationManager()->getInstallPath($package),
+                        $packagePsr4Autoload
+                    );
+                }
+            }
+        }
+
         $this->getIO()->write('<info>Generating concrete classes</info>');
 
-        $composer  = $this->getComposer();
-        $localRepo = $composer->getRepositoryManager()->getLocalRepository();
-        $package   = $composer->getPackage();
-        $config    = $composer->getConfig();
-
-        $autoloadGenerator = new AutoloadGenerator($composer->getEventDispatcher());
+        $autoloadGenerator = $composer->getAutoloadGenerator();
 
         $packageMap = $autoloadGenerator->buildPackageMap(
             $composer->getInstallationManager(),
-            $package,
+            $localPackage,
             $localRepo->getCanonicalPackages()
         );
 
-        $autoloads = $autoloadGenerator->parseAutoloads($packageMap, $package, true);
+        $autoloads = $autoloadGenerator->parseAutoloads($packageMap, $localPackage, true);
 
         $filesystem = new Filesystem();
 
         $basePath   = $filesystem->normalizePath(realpath(realpath(getcwd())));
-        $vendorPath = $filesystem->normalizePath(realpath(realpath($config->get('vendor-dir'))));
+        $vendorPath = $filesystem->normalizePath(realpath(realpath($localConfig->get('vendor-dir'))));
 
-        $classLoader = self::getClassLoader($autoloads, $autoloadGenerator, $filesystem, $basePath, $vendorPath);
+        $classLoader = $autoloadGenerator->createLoader($autoloads, $vendorPath);
         $classFinder = new ClassFinder($classLoader);
 
         $printer  = new Printer();
@@ -55,37 +96,33 @@ class DumpCommand extends BaseCommand
         $emptiedCacheDirectories = [];
 
         $filesCount = 0;
-        foreach ($autoloads['psr-4'] as $paths) {
-            if (count($paths) !== 2) {
-                continue;
-            }
-            $exportedPaths = [];
-            foreach ($paths as $path) {
-                $exportedPaths[] = $autoloadGenerator->getAbsolutePath($filesystem, $basePath, $vendorPath, $path);
-            }
 
-            $sourceDir = $exportedPaths[1];
+        $sourceDirectory = $filesystem->normalizePath($basePath . '/' . $localPsr4Paths[1]);
+        $cacheDirectory  = $filesystem->normalizePath($basePath . '/' . $localPsr4Paths[0]);
+        $filesystem->emptyDirectory($cacheDirectory);
 
-            try {
-                $result = $compiler->compile($sourceDir);
-            } catch (\Exception $exception) {
-                $this->getIO()->writeError(sprintf("<bg=red>%s</>", $exception->getMessage()));
-                if ($exception->getPrevious() !== null) {
-                    $this->getIO()->writeError(sprintf("<bg=red>%s</>", $exception->getPrevious()->getMessage()));
-                }
-                $this->getIO()->writeError(sprintf("<bg=red>%s</>", $exception->getTraceAsString()));
-
-                return 1;
-            }
+        try {
+            $result = $compiler->compile($sourceDirectory);
 
             foreach ($result->getConcreteClasses() as $concreteClass) {
-                $cacheDirectory = $classFinder->getCacheDirectoryByClassFqn($concreteClass->fqn);
+                $genericFilePath = $classLoader->findFile($concreteClass->genericFqn);
+                if (!$genericFilePath) {
+                    throw new \RuntimeException(sprintf('Can\'t find file for class "%s"', $concreteClass->genericFqn));
+                }
+
+                $package = self::findPackageByFilePath($genericPackages, $genericFilePath);
+                if ($package === null) {
+                    throw new \RuntimeException(sprintf('Can\'t find package for file "%s"', $genericFilePath));
+                }
+
+                $cacheDirectory = $package->getCacheDirectory($genericFilePath);
+
                 if (array_key_exists($cacheDirectory, $emptiedCacheDirectories)) {
                     $filesystem->emptyDirectory($cacheDirectory);
                     $emptiedCacheDirectories[$cacheDirectory] = true;
                 }
 
-                $concreteFilePath = rtrim($cacheDirectory, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . ltrim($classFinder->getCacheRelativeFilePathByClassFqn($concreteClass->fqn), DIRECTORY_SEPARATOR);
+                $concreteFilePath = rtrim($cacheDirectory, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . ltrim($package->getRelativeFilePathByClassFqn($concreteClass->fqn), DIRECTORY_SEPARATOR);
                 $filesystem->ensureDirectoryExists(dirname($concreteFilePath));
                 if (file_put_contents($concreteFilePath, $printer->printFile($concreteClass->ast)) === false) {
                     throw new \RuntimeException(sprintf('Can\'t write into file "%s"', $concreteFilePath));
@@ -100,6 +137,15 @@ class DumpCommand extends BaseCommand
                     $this->getIO()->write($line);
                 }
             }
+
+        } catch (\Exception $exception) {
+            $this->getIO()->writeError(sprintf("<bg=red>%s</>", $exception->getMessage()));
+            if ($exception->getPrevious() !== null) {
+                $this->getIO()->writeError(sprintf("<bg=red>%s</>", $exception->getPrevious()->getMessage()));
+            }
+            $this->getIO()->writeError(sprintf("<bg=red>%s</>", $exception->getTraceAsString()));
+
+            return 1;
         }
 
         $timeFin = microtime(true);
@@ -113,27 +159,17 @@ class DumpCommand extends BaseCommand
         return 0;
     }
 
-    private function getClassLoader(array $autoloads, AutoloadGenerator $autoloadGenerator, Filesystem $filesystem, string $basePath, string $vendorPath): ClassLoader
+    /**
+     * @param Package[] $packages
+     */
+    public function findPackageByFilePath(array $packages, string $filePath): ?Package
     {
-        $classLoader = new ClassLoader();
-        foreach ($autoloads['psr-4'] as $namespace => $paths) {
-            $exportedPaths = [];
-            foreach ($paths as $path) {
-                $exportedPaths[] = $autoloadGenerator->getAbsolutePath($filesystem, $basePath, $vendorPath, $path);
+        foreach ($packages as $package) {
+            if ($package->hasFile($filePath)) {
+                return $package;
             }
-
-            $classLoader->setPsr4($namespace, $exportedPaths);
         }
 
-        foreach ($autoloads['psr-0'] as $namespace => $paths) {
-            $exportedPaths = [];
-            foreach ($paths as $path) {
-                $exportedPaths[] = $autoloadGenerator->getAbsolutePath($filesystem, $basePath, $vendorPath, $path);
-            }
-
-            $classLoader->set($namespace, $exportedPaths);
-        }
-
-        return $classLoader;
+        return null;
     }
 }

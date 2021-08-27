@@ -202,6 +202,7 @@ class GenericClass
         return new ConcreteClass(
             $this->generateConcreteClassName($concreteGenericsMap->getConcreteArguments()),
             $this->generateConcreteClassFqn($concreteGenericsMap->getConcreteArguments()),
+            $this->namespace . '\\' . $this->name,
             $ast
         );
     }
@@ -214,7 +215,7 @@ class GenericClass
 
         $genericClassFqn = Parser::getNodeName($node, $this->classFinder);
         if (!$this->genericClassCache->has($genericClassFqn)) {
-            $genericClassFileContent = $this->classFinder->getSourceFileContentByClassFqn($genericClassFqn);
+            $genericClassFileContent = $this->classFinder->getFileContent($genericClassFqn);
             try {
                 $genericClassAst = Parser::resolveNames(Parser::parse($genericClassFileContent));
             } catch (\Exception $exception) {
