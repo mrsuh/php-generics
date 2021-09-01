@@ -16,9 +16,24 @@ class Package
         $this->psr4autoload = $psr4autoload;
     }
 
-    public function hasFile(string $filePath): bool
+    public function hasFile(string $filePath): int
     {
-        return strpos($this->directory, $filePath) === 0;
+        foreach ($this->psr4autoload as $directories) {
+
+            if (!is_array($directories)) {
+                continue;
+            }
+
+            if (count($directories) < 2) {
+                continue;
+            }
+
+            if (strpos($filePath, $directories[1]) === 0) {
+                return strlen($directories[1]);
+            }
+        }
+
+        return 0;
     }
 
     public function getCacheDirectory(string $fqn): string
@@ -36,7 +51,7 @@ class Package
                 continue;
             }
 
-            return $this->directory . DIRECTORY_SEPARATOR . $directories[0];
+            return $directories[0];
         }
 
         return '';

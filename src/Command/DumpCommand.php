@@ -52,6 +52,11 @@ class DumpCommand extends BaseCommand
             return 1;
         }
 
+        $filesystem = new Filesystem();
+
+        $basePath   = $filesystem->normalizePath(realpath(realpath(getcwd())));
+        $vendorPath = $filesystem->normalizePath(realpath(realpath($localConfig->get('vendor-dir'))));
+
         $genericPackages = [];
         $installedRepo   = new InstalledRepository([$composer->getRepositoryManager()->getLocalRepository()]);
         foreach ($installedRepo->getRepositories() as $repository) {
@@ -73,13 +78,35 @@ class DumpCommand extends BaseCommand
                 }
 
                 if ($hasCacheDirectory) {
+                    $packagePath = $composer->getInstallationManager()->getInstallPath($package);
+                    $tmpAutoload = $packagePsr4Autoload;
+                    foreach ($packagePsr4Autoload as $localNamespace => $localDirectories) {
+                        $tmpAutoload[$localNamespace] = [];
+                        foreach ($localDirectories as $directory) {
+                            $tmpAutoload[$localNamespace][] = $packagePath . '/' . $directory;
+                        }
+                    }
                     $genericPackages[] = new Package(
-                        $composer->getInstallationManager()->getInstallPath($package),
-                        $packagePsr4Autoload
+                        $packagePath,
+                        $tmpAutoload
                     );
                 }
             }
         }
+
+        $tmpAutoload         = [];
+        $packageAutoload     = $localPackage->getAutoload();
+        $packagePsr4Autoload = $packageAutoload['psr-4'] ?? [];
+        foreach ($packagePsr4Autoload as $localNamespace => $localDirectories) {
+            $tmpAutoload[$localNamespace] = [];
+            foreach ($localDirectories as $directory) {
+                $tmpAutoload[$localNamespace][] = $basePath . '/' . $directory;
+            }
+        }
+        $genericPackages[] = new Package(
+            $composer->getInstallationManager()->getInstallPath($localPackage),
+            $tmpAutoload
+        );
 
         $this->getIO()->write('<info>Generating concrete classes</info>');
 
@@ -93,12 +120,28 @@ class DumpCommand extends BaseCommand
 
         $autoloads = $autoloadGenerator->parseAutoloads($packageMap, $localPackage, true);
 
-        $filesystem = new Filesystem();
+        $psr4Autoload = $autoloads['psr-4'];
+        foreach ($psr4Autoload as $namespace => &$directories) {
+            if (!is_array($directories)) {
+                continue;
+            }
 
-        $basePath   = $filesystem->normalizePath(realpath(realpath(getcwd())));
-        $vendorPath = $filesystem->normalizePath(realpath(realpath($localConfig->get('vendor-dir'))));
+            if (count($directories) < 2) {
+                continue;
+            }
 
-        $classLoader = $autoloadGenerator->createLoader($autoloads, $vendorPath);
+            foreach ($localPsr4Autoload as $localNamespace => $localDirectories) {
+                if ($localNamespace === $namespace) {
+                    foreach ($directories as &$directory) {
+                        $directory = $basePath . '/' . $directory;
+                    }
+                    unset($directory);
+                }
+            }
+        }
+        unset($directories);
+
+        $classLoader = $autoloadGenerator->createLoader(['psr-4' => $psr4Autoload], $vendorPath);
         $classFinder = new ClassFinder($classLoader);
 
         $printer  = new Printer();
@@ -125,7 +168,7 @@ class DumpCommand extends BaseCommand
                 $result = $compiler->compile($sourceDirectory);
 
                 foreach ($result->getConcreteClasses() as $concreteClass) {
-                    $genericFilePath = $classLoader->findFile($concreteClass->genericFqn);
+                    $genericFilePath = $filesystem->normalizePath($classLoader->findFile($concreteClass->genericFqn));
                     if (!$genericFilePath) {
                         throw new \RuntimeException(sprintf('Can\'t find file for class "%s"', $concreteClass->genericFqn));
                     }
@@ -135,7 +178,7 @@ class DumpCommand extends BaseCommand
                         throw new \RuntimeException(sprintf('Can\'t find package for file "%s"', $genericFilePath));
                     }
 
-                    $cacheDirectory = $package->getCacheDirectory($genericFilePath);
+                    $cacheDirectory = $package->getCacheDirectory($concreteClass->genericFqn);
 
                     if (array_key_exists($cacheDirectory, $emptiedCacheDirectories)) {
                         $filesystem->emptyDirectory($cacheDirectory);
@@ -185,12 +228,16 @@ class DumpCommand extends BaseCommand
      */
     public function findPackageByFilePath(array $packages, string $filePath): ?Package
     {
+        $found = null;
+        $len   = 0;
         foreach ($packages as $package) {
-            if ($package->hasFile($filePath)) {
-                return $package;
+            $packageLength = $package->hasFile($filePath);
+            if ($packageLength > $len) {
+                $found = $package;
+                $len   = $packageLength;
             }
         }
 
-        return null;
+        return $found;
     }
 }
