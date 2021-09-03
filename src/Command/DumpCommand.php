@@ -106,7 +106,7 @@ class DumpCommand extends BaseCommand
                         $emptiedCacheDirectories[$cacheDirectory] = true;
                     }
 
-                    $concreteFilePath = rtrim($cacheDirectory, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . ltrim($package->getRelativeFilePathByClassFqn($concreteClass->fqn), DIRECTORY_SEPARATOR);
+                    $concreteFilePath = rtrim($cacheDirectory, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . ltrim($packageDirectories->getRelativeFilePathByClassFqn($concreteClass->fqn), DIRECTORY_SEPARATOR);
                     $filesystem->ensureDirectoryExists(dirname($concreteFilePath));
                     if (file_put_contents($concreteFilePath, $printer->printFile($concreteClass->ast)) === false) {
                         throw new \RuntimeException(sprintf('Can\'t write into file "%s"', $concreteFilePath));

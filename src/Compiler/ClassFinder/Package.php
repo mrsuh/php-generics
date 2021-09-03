@@ -16,7 +16,7 @@ class Package
 
     public function getDirectoriesByFilePath(string $filePath): ?PackageDirectories
     {
-        foreach ($this->psr4autoload as $directories) {
+        foreach ($this->psr4autoload as $namespace => $directories) {
 
             if (!is_array($directories)) {
                 continue;
@@ -29,24 +29,10 @@ class Package
             $sourceDirectory = $directories[1];
 
             if (strpos($filePath, $sourceDirectory) === 0) {
-                return new PackageDirectories($directories[1], $directories[0]);
+                return new PackageDirectories($directories[1], $directories[0], $namespace);
             }
         }
 
         return null;
-    }
-
-    public function getRelativeFilePathByClassFqn(string $fqn): string
-    {
-        $filePath = '';
-        foreach ($this->psr4autoload as $namespace => $directories) {
-            if (strpos($fqn, $namespace) !== 0) {// @todo find right namespace
-                continue;
-            }
-
-            return str_replace([$namespace, '\\'], ['', DIRECTORY_SEPARATOR], $fqn) . '.php';
-        }
-
-        return $filePath;
     }
 }
