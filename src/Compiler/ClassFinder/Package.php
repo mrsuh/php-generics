@@ -4,19 +4,17 @@ namespace Mrsuh\PhpGenerics\Compiler\ClassFinder;
 
 class Package
 {
-    private string $directory;
-    private array  $psr4autoload;
+    private array $psr4autoload;
 
     /**
-     * @param string[] $autoload
+     * @param array<string, array> $psr4autoload
      */
-    public function __construct(string $directory, array $psr4autoload)
+    public function __construct(array $psr4autoload)
     {
-        $this->directory    = $directory;
         $this->psr4autoload = $psr4autoload;
     }
 
-    public function hasFile(string $filePath): int
+    public function getDirectoriesByFilePath(string $filePath): ?PackageDirectories
     {
         foreach ($this->psr4autoload as $directories) {
 
@@ -28,33 +26,14 @@ class Package
                 continue;
             }
 
-            if (strpos($filePath, $directories[1]) === 0) {
-                return strlen($directories[1]);
+            $sourceDirectory = $directories[1];
+
+            if (strpos($filePath, $sourceDirectory) === 0) {
+                return new PackageDirectories($directories[1], $directories[0]);
             }
         }
 
-        return 0;
-    }
-
-    public function getCacheDirectory(string $fqn): string
-    {
-        foreach ($this->psr4autoload as $namespace => $directories) {
-            if (strpos($fqn, $namespace) !== 0) {// @todo find right namespace
-                continue;
-            }
-
-            if (!is_array($directories)) {
-                continue;
-            }
-
-            if (count($directories) < 2) {
-                continue;
-            }
-
-            return $directories[0];
-        }
-
-        return '';
+        return null;
     }
 
     public function getRelativeFilePathByClassFqn(string $fqn): string
@@ -65,8 +44,7 @@ class Package
                 continue;
             }
 
-            $filePath = str_replace([$namespace, '\\'], ['', DIRECTORY_SEPARATOR], $fqn) . '.php';
-            break;
+            return str_replace([$namespace, '\\'], ['', DIRECTORY_SEPARATOR], $fqn) . '.php';
         }
 
         return $filePath;
