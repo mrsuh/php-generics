@@ -2,6 +2,7 @@
 
 use Composer\Autoload\ClassLoader;
 use Mrsuh\PhpGenerics\Compiler\ClassFinder\ClassFinder;
+use Mrsuh\PhpGenerics\Compiler\ClassFinder\PackageAutoload;
 use Mrsuh\PhpGenerics\Compiler\Compiler;
 use Mrsuh\PhpGenerics\Compiler\Parser;
 use Mrsuh\PhpGenerics\Compiler\Printer;
@@ -34,7 +35,7 @@ foreach ($directories as $directory) {
     $classLoader = new ClassLoader();
     $classLoader->setPsr4('Test\\', $inputDirectory);
     $classFinder = new ClassFinder($classLoader);
-    $package     = new \Mrsuh\PhpGenerics\Compiler\ClassFinder\Package($directory->getRealPath(), ['Test\\' => ['output', 'input']]);
+    $package     = new PackageAutoload('Test\\', $inputDirectory, $outputDirectory);
 
     $compiler = new Compiler($classFinder);
 
@@ -52,7 +53,7 @@ foreach ($directories as $directory) {
     }
 
     foreach ($result->getConcreteClasses() as $concreteClass) {
-        $concreteFilePath     = $outputDirectory . DIRECTORY_SEPARATOR . ltrim($package->getRelativeFilePathByClassFqn($concreteClass->fqn), DIRECTORY_SEPARATOR);
+        $concreteFilePath     = $outputDirectory . DIRECTORY_SEPARATOR . ltrim(PackageAutoload::getRelativeFilePathByClassFqn($package, $concreteClass->fqn), DIRECTORY_SEPARATOR);
         $concreteClassContent = file_get_contents($concreteFilePath);
         try {
             $concreteClassAst = Parser::parse($concreteClassContent);

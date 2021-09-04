@@ -5,6 +5,7 @@ use Composer\Util\Filesystem;
 use Mrsuh\PhpGenerics\Compiler\ClassFinder\ClassFinder;
 use Mrsuh\PhpGenerics\Compiler\Compiler;
 use Mrsuh\PhpGenerics\Compiler\Printer;
+use Mrsuh\PhpGenerics\Compiler\ClassFinder\PackageAutoload;
 
 require __DIR__ . '/../vendor/autoload.php';
 
@@ -37,7 +38,7 @@ $filesystem->ensureDirectoryExists($sourceDir);
 $filesystem->removeDirectory($outputDir);
 $filesystem->ensureDirectoryExists($outputDir);
 
-$package = new \Mrsuh\PhpGenerics\Compiler\ClassFinder\Package($sourceDir, ['Test\\' => ['output', 'input']]);
+$package = new PackageAutoload('Test\\', $sourceDir, $outputDir);
 
 $compiler = new Compiler($classFinder);
 
@@ -50,7 +51,7 @@ try {
 }
 
 foreach ($result->getConcreteClasses() as $concreteClass) {
-    $concreteFilePath = $outputDir . DIRECTORY_SEPARATOR . ltrim($package->getRelativeFilePathByClassFqn($concreteClass->fqn), DIRECTORY_SEPARATOR);
+    $concreteFilePath = $outputDir . DIRECTORY_SEPARATOR . ltrim(PackageAutoload::getRelativeFilePathByClassFqn($package, $concreteClass->fqn), DIRECTORY_SEPARATOR);
     $filesystem->ensureDirectoryExists(dirname($concreteFilePath));
     file_put_contents($concreteFilePath, $printer->printFile($concreteClass->ast));
 

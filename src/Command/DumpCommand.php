@@ -9,8 +9,7 @@ use Composer\Repository\InstalledRepository;
 use Composer\Repository\RepositoryInterface;
 use Composer\Util\Filesystem;
 use Mrsuh\PhpGenerics\Compiler\ClassFinder\ClassFinder;
-use Mrsuh\PhpGenerics\Compiler\ClassFinder\Package;
-use Mrsuh\PhpGenerics\Compiler\ClassFinder\PackageDirectories;
+use Mrsuh\PhpGenerics\Compiler\ClassFinder\PackageAutoload;
 use Mrsuh\PhpGenerics\Compiler\Compiler;
 use Mrsuh\PhpGenerics\Compiler\Printer;
 use Symfony\Component\Console\Input\InputInterface;
@@ -48,7 +47,7 @@ class DumpCommand extends BaseCommand
         $basePath   = $filesystem->normalizePath(realpath(realpath(getcwd())));
         $vendorPath = $filesystem->normalizePath(realpath(realpath($composer->getConfig()->get('vendor-dir'))));
 
-        $genericPackages = self::getGenericsPackages($localPackage, $basePath, $localRepository, $installationManager);
+        $packageAutoloads = self::getPackageAutoloads($localPackage, $basePath, $localRepository, $installationManager);
 
         $this->getIO()->write('<info>Generating concrete classes</info>');
 
@@ -61,7 +60,7 @@ class DumpCommand extends BaseCommand
         );
 
         $autoloads         = $autoloadGenerator->parseAutoloads($packageMap, $localPackage, true);
-        $localPsr4Autoload = self::getPackagePsr4Autoload($localPackage);
+        $localPsr4Autoload = self::parsePackagePsr4Autoload($localPackage);
 
         $classLoader = $autoloadGenerator->createLoader([
             'psr-4' => self::getPsr4AutoloadWithAbsolutePath($autoloads['psr-4'], $localPsr4Autoload, $basePath)
@@ -94,19 +93,19 @@ class DumpCommand extends BaseCommand
                         throw new \RuntimeException(sprintf('Can\'t find file for class "%s"', $concreteClass->genericFqn));
                     }
 
-                    $packageDirectories = self::findPackageDirectoriesByFilePath($genericPackages, $genericFilePath);
-                    if ($packageDirectories === null) {
-                        throw new \RuntimeException(sprintf('Can\'t find package directories for file "%s"', $genericFilePath));
+                    $packageAutoload = self::findPackageAutoloadByFilePath($packageAutoloads, $genericFilePath);
+                    if ($packageAutoload === null) {
+                        throw new \RuntimeException(sprintf('Can\'t find package autoload for file "%s"', $genericFilePath));
                     }
 
-                    $cacheDirectory = $packageDirectories->cacheDirectory;
+                    $cacheDirectory = $packageAutoload->getCacheDirectory();
 
                     if (array_key_exists($cacheDirectory, $emptiedCacheDirectories)) {
                         $filesystem->emptyDirectory($cacheDirectory);
                         $emptiedCacheDirectories[$cacheDirectory] = true;
                     }
 
-                    $concreteFilePath = rtrim($cacheDirectory, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . ltrim($packageDirectories->getRelativeFilePathByClassFqn($concreteClass->fqn), DIRECTORY_SEPARATOR);
+                    $concreteFilePath = rtrim($cacheDirectory, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . ltrim(PackageAutoload::getRelativeFilePathByClassFqn($packageAutoload, $concreteClass->fqn), DIRECTORY_SEPARATOR);
                     $filesystem->ensureDirectoryExists(dirname($concreteFilePath));
                     if (file_put_contents($concreteFilePath, $printer->printFile($concreteClass->ast)) === false) {
                         throw new \RuntimeException(sprintf('Can\'t write into file "%s"', $concreteFilePath));
@@ -145,17 +144,15 @@ class DumpCommand extends BaseCommand
     }
 
     /**
-     * @return Package[]
+     * @return PackageAutoload[]
      */
-    private static function getGenericsPackages(PackageInterface $localPackage, string $localPackageBasePath, RepositoryInterface $localRepository, InstallationManager $installationManager): array
+    private static function getPackageAutoloads(PackageInterface $localPackage, string $localPackageBasePath, RepositoryInterface $localRepository, InstallationManager $installationManager): array
     {
-        $genericPackages     = [];
+        $packageDirectories  = [];
         $installedRepository = new InstalledRepository([$localRepository]);
         foreach ($installedRepository->getRepositories() as $repository) {
             foreach ($repository->getPackages() as $package) {
-                $packagePsr4Autoload = self::getPackagePsr4Autoload($package);
-                $hasCacheDirectory   = false;
-                foreach ($packagePsr4Autoload as $directories) {
+                foreach (self::parsePackagePsr4Autoload($package) as $namespace => $directories) {
                     if (!is_array($directories)) {
                         continue;
                     }
@@ -164,35 +161,28 @@ class DumpCommand extends BaseCommand
                         continue;
                     }
 
-                    $hasCacheDirectory = true;
-                    break;
-                }
-
-                if ($hasCacheDirectory) {
-                    $packagePath = $installationManager->getInstallPath($package);
-                    $tmpAutoload = $packagePsr4Autoload;
-                    foreach ($packagePsr4Autoload as $localNamespace => $localDirectories) {
-                        $tmpAutoload[$localNamespace] = [];
-                        foreach ($localDirectories as $directory) {
-                            $tmpAutoload[$localNamespace][] = $packagePath . '/' . $directory;
-                        }
-                    }
-                    $genericPackages[] = new Package($tmpAutoload);
+                    $packageDirectories[] = new PackageAutoload($namespace, $directories[1], $directories[0]);
                 }
             }
         }
 
-        $tmpAutoload         = [];
-        $packagePsr4Autoload = self::getPackagePsr4Autoload($localPackage);
-        foreach ($packagePsr4Autoload as $localNamespace => $localDirectories) {
-            $tmpAutoload[$localNamespace] = [];
-            foreach ($localDirectories as $directory) {
-                $tmpAutoload[$localNamespace][] = $localPackageBasePath . '/' . $directory;
+        foreach (self::parsePackagePsr4Autoload($localPackage) as $namespace => $directories) {
+            if (!is_array($directories)) {
+                continue;
             }
-        }
-        $genericPackages[] = new Package($tmpAutoload);
 
-        return $genericPackages;
+            if (count($directories) < 2) {
+                continue;
+            }
+
+            $packageDirectories[] = new PackageAutoload(
+                $namespace,
+                $localPackageBasePath . '/' . $directories[1],
+                $localPackageBasePath . '/' . $directories[0]
+            );
+        }
+
+        return $packageDirectories;
     }
 
     private static function getPsr4AutoloadWithAbsolutePath(array $psr4Autoload, array $localPackagePsr4Autoload, string $localPackageBasePath): array
@@ -211,7 +201,7 @@ class DumpCommand extends BaseCommand
 
     private static function hasPackageCacheDirectory(PackageInterface $package): bool
     {
-        foreach (self::getPackagePsr4Autoload($package) as $directories) {
+        foreach (self::parsePackagePsr4Autoload($package) as $directories) {
             if (!is_array($directories)) {
                 continue;
             }
@@ -225,7 +215,7 @@ class DumpCommand extends BaseCommand
         return false;
     }
 
-    private static function getPackagePsr4Autoload(PackageInterface $package): array
+    private static function parsePackagePsr4Autoload(PackageInterface $package): array
     {
         $autoload = $package->getAutoload();
 
@@ -233,25 +223,26 @@ class DumpCommand extends BaseCommand
     }
 
     /**
-     * @param Package[] $packages
+     * @param PackageAutoload[] $packageDirectories
      */
-    public function findPackageDirectoriesByFilePath(array $packages, string $filePath): ?PackageDirectories
+    public function findPackageAutoloadByFilePath(array $packageDirectories, string $filePath): ?PackageAutoload
     {
-        $foundPackage   = null;
-        $filePathLength = 0;
-        foreach ($packages as $package) {
-            $packageDirectories = $package->getDirectoriesByFilePath($filePath);
-            if ($packageDirectories === null) {
+        $directories = null;
+        $length      = 0;
+        foreach ($packageDirectories as $packageDirectory) {
+
+            if (strpos($filePath, $packageDirectory->getSourceDirectory()) === 0 && strlen($packageDirectory->getSourceDirectory()) > $length) {
+                $length      = strlen($packageDirectory->getSourceDirectory());
+                $directories = $packageDirectory;
                 continue;
             }
 
-            $sourceDirectoryLength = strlen($packageDirectories->sourceDirectory);
-            if ($sourceDirectoryLength > $filePathLength) {
-                $foundPackage   = $packageDirectories;
-                $filePathLength = $sourceDirectoryLength;
+            if (strpos($filePath, $packageDirectory->getCacheDirectory()) === 0 && strlen($packageDirectory->getCacheDirectory()) > $length) {
+                $length      = strlen($packageDirectory->getCacheDirectory());
+                $directories = $packageDirectory;
             }
         }
 
-        return $foundPackage;
+        return $directories;
     }
 }
