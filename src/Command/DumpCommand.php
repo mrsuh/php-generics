@@ -161,7 +161,13 @@ class DumpCommand extends BaseCommand
                         continue;
                     }
 
-                    $packageDirectories[] = new PackageAutoload($namespace, $directories[1], $directories[0]);
+                    $packageDirectory = $installationManager->getInstallPath($package);
+
+                    $packageDirectories[] = new PackageAutoload(
+                        $namespace,
+                        $packageDirectory . '/' . $directories[1],
+                        $packageDirectory . '/' . $directories[0]
+                    );
                 }
             }
         }
