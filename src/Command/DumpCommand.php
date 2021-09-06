@@ -9,7 +9,6 @@ use Composer\Repository\InstalledRepository;
 use Composer\Repository\RepositoryInterface;
 use Composer\Util\Filesystem;
 use Mrsuh\PhpGenerics\Compiler\ClassFinder\ClassFinder;
-use Mrsuh\PhpGenerics\Compiler\ClassFinder\PackageAutoload;
 use Mrsuh\PhpGenerics\Compiler\Compiler;
 use Mrsuh\PhpGenerics\Compiler\Printer;
 use Symfony\Component\Console\Input\InputInterface;
@@ -105,7 +104,7 @@ class DumpCommand extends BaseCommand
                         $emptiedCacheDirectories[$cacheDirectory] = true;
                     }
 
-                    $concreteFilePath = rtrim($cacheDirectory, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . ltrim(PackageAutoload::getRelativeFilePathByClassFqn($packageAutoload, $concreteClass->fqn), DIRECTORY_SEPARATOR);
+                    $concreteFilePath = rtrim($cacheDirectory, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . ltrim($packageAutoload->getRelativeFilePathByClassFqn($concreteClass->fqn), DIRECTORY_SEPARATOR);
                     $filesystem->ensureDirectoryExists(dirname($concreteFilePath));
                     if (file_put_contents($concreteFilePath, $printer->printFile($concreteClass->ast)) === false) {
                         throw new \RuntimeException(sprintf('Can\'t write into file "%s"', $concreteFilePath));
@@ -148,7 +147,7 @@ class DumpCommand extends BaseCommand
      */
     private static function getPackageAutoloads(PackageInterface $localPackage, string $localPackageBasePath, RepositoryInterface $localRepository, InstallationManager $installationManager): array
     {
-        $packageDirectories  = [];
+        $packageAutoloads    = [];
         $installedRepository = new InstalledRepository([$localRepository]);
         foreach ($installedRepository->getRepositories() as $repository) {
             foreach ($repository->getPackages() as $package) {
@@ -163,10 +162,10 @@ class DumpCommand extends BaseCommand
 
                     $packageDirectory = $installationManager->getInstallPath($package);
 
-                    $packageDirectories[] = new PackageAutoload(
+                    $packageAutoloads[] = new PackageAutoload(
                         $namespace,
-                        $packageDirectory . '/' . $directories[1],
-                        $packageDirectory . '/' . $directories[0]
+                        $packageDirectory . DIRECTORY_SEPARATOR . $directories[1],
+                        $packageDirectory . DIRECTORY_SEPARATOR . $directories[0]
                     );
                 }
             }
@@ -181,28 +180,29 @@ class DumpCommand extends BaseCommand
                 continue;
             }
 
-            $packageDirectories[] = new PackageAutoload(
+            $packageAutoloads[] = new PackageAutoload(
                 $namespace,
-                $localPackageBasePath . '/' . $directories[1],
-                $localPackageBasePath . '/' . $directories[0]
+                $localPackageBasePath . DIRECTORY_SEPARATOR . $directories[1],
+                $localPackageBasePath . DIRECTORY_SEPARATOR . $directories[0]
             );
         }
 
-        return $packageDirectories;
+        return $packageAutoloads;
     }
 
     private static function getPsr4AutoloadWithAbsolutePath(array $psr4Autoload, array $localPackagePsr4Autoload, string $localPackageBasePath): array
     {
+        $autoload = $psr4Autoload;
         foreach ($localPackagePsr4Autoload as $localPackageNamespace => $localPackageDirectories) {
-            $directories = &$psr4Autoload[$localPackageNamespace];
+            $directories = &$autoload[$localPackageNamespace];
             foreach ($directories as &$directory) {
-                $directory = $localPackageBasePath . '/' . $directory;
+                $directory = $localPackageBasePath . DIRECTORY_SEPARATOR . $directory;
             }
         }
         unset($directories);
         unset($directory);
 
-        return $psr4Autoload;
+        return $autoload;
     }
 
     private static function hasPackageCacheDirectory(PackageInterface $package): bool
@@ -211,6 +211,7 @@ class DumpCommand extends BaseCommand
             if (!is_array($directories)) {
                 continue;
             }
+
             if (count($directories) < 2) {
                 continue;
             }
@@ -231,24 +232,26 @@ class DumpCommand extends BaseCommand
     /**
      * @param PackageAutoload[] $packageDirectories
      */
-    public function findPackageAutoloadByFilePath(array $packageDirectories, string $filePath): ?PackageAutoload
+    public function findPackageAutoloadByFilePath(array $packageAutoloads, string $filePath): ?PackageAutoload
     {
-        $directories = null;
-        $length      = 0;
-        foreach ($packageDirectories as $packageDirectory) {
+        $autoload = null;
+        $length   = 0;
+        foreach ($packageAutoloads as $packageAutoload) {
 
-            if (strpos($filePath, $packageDirectory->getSourceDirectory()) === 0 && strlen($packageDirectory->getSourceDirectory()) > $length) {
-                $length      = strlen($packageDirectory->getSourceDirectory());
-                $directories = $packageDirectory;
+            $sourceDirectory = $packageAutoload->getSourceDirectory();
+            if (strpos($filePath, $sourceDirectory) === 0 && strlen($sourceDirectory) > $length) {
+                $length   = strlen($sourceDirectory);
+                $autoload = $packageAutoload;
                 continue;
             }
 
-            if (strpos($filePath, $packageDirectory->getCacheDirectory()) === 0 && strlen($packageDirectory->getCacheDirectory()) > $length) {
-                $length      = strlen($packageDirectory->getCacheDirectory());
-                $directories = $packageDirectory;
+            $cacheDirectory = $packageAutoload->getCacheDirectory();
+            if (strpos($filePath, $cacheDirectory) === 0 && strlen($cacheDirectory) > $length) {
+                $length   = strlen($cacheDirectory);
+                $autoload = $packageAutoload;
             }
         }
 
-        return $directories;
+        return $autoload;
     }
 }

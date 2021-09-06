@@ -6,7 +6,6 @@ use Mrsuh\PhpGenerics\Compiler\Cache\ConcreteClassCache;
 use Mrsuh\PhpGenerics\Compiler\Cache\GenericClassCache;
 use Mrsuh\PhpGenerics\Compiler\ClassFinder\ClassFinderInterface;
 use Mrsuh\PhpGenerics\Compiler\Parser;
-use Mrsuh\PhpGenerics\Compiler\Result;
 use PhpParser\Node;
 use PhpParser\Node\Expr\ClassConstFetch;
 use PhpParser\Node\Expr\Instanceof_;

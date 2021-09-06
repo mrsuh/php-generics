@@ -1,8 +1,8 @@
 <?php
 
 use Composer\Autoload\ClassLoader;
+use Mrsuh\PhpGenerics\Command\PackageAutoload;
 use Mrsuh\PhpGenerics\Compiler\ClassFinder\ClassFinder;
-use Mrsuh\PhpGenerics\Compiler\ClassFinder\PackageAutoload;
 use Mrsuh\PhpGenerics\Compiler\Compiler;
 use Mrsuh\PhpGenerics\Compiler\Parser;
 use Mrsuh\PhpGenerics\Compiler\Printer;
@@ -53,7 +53,7 @@ foreach ($directories as $directory) {
     }
 
     foreach ($result->getConcreteClasses() as $concreteClass) {
-        $concreteFilePath     = $outputDirectory . DIRECTORY_SEPARATOR . ltrim(PackageAutoload::getRelativeFilePathByClassFqn($package, $concreteClass->fqn), DIRECTORY_SEPARATOR);
+        $concreteFilePath     = $outputDirectory . DIRECTORY_SEPARATOR . ltrim($package->getRelativeFilePathByClassFqn($concreteClass->fqn), DIRECTORY_SEPARATOR);
         $concreteClassContent = file_get_contents($concreteFilePath);
         try {
             $concreteClassAst = Parser::parse($concreteClassContent);
@@ -77,9 +77,8 @@ foreach ($directories as $directory) {
 
 if ($allTestsSuccess) {
     print("\nAll tests passed successfully!\n");
+    exit(0);
 } else {
     print("\nThere are some errors\n");
     exit(1);
 }
-
-exit($allTestsSuccess ? 0 : 1);

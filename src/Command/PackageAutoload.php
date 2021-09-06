@@ -1,6 +1,6 @@
 <?php
 
-namespace Mrsuh\PhpGenerics\Compiler\ClassFinder;
+namespace Mrsuh\PhpGenerics\Command;
 
 class PackageAutoload
 {
@@ -30,9 +30,8 @@ class PackageAutoload
         return $this->namespace;
     }
 
-    // @todo
-    public static function getRelativeFilePathByClassFqn(PackageAutoload $packageDirectories, string $fqn): string
+    public function getRelativeFilePathByClassFqn(string $fqn): string
     {
-        return str_replace([$packageDirectories->getNamespace(), '\\'], ['', DIRECTORY_SEPARATOR], $fqn) . '.php';
+        return str_replace([$this->getNamespace(), '\\'], ['', DIRECTORY_SEPARATOR], $fqn) . '.php';
     }
 }

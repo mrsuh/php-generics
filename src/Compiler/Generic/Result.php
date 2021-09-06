@@ -1,8 +1,6 @@
 <?php
 
-namespace Mrsuh\PhpGenerics\Compiler;
-
-use Mrsuh\PhpGenerics\Compiler\Generic\ConcreteClass;
+namespace Mrsuh\PhpGenerics\Compiler\Generic;
 
 class Result
 {

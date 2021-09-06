@@ -6,6 +6,7 @@ use Mrsuh\PhpGenerics\Compiler\Cache\ConcreteClassCache;
 use Mrsuh\PhpGenerics\Compiler\Cache\GenericClassCache;
 use Mrsuh\PhpGenerics\Compiler\ClassFinder\ClassFinderInterface;
 use Mrsuh\PhpGenerics\Compiler\Generic\GenericClass;
+use Mrsuh\PhpGenerics\Compiler\Generic\Result;
 use Symfony\Component\Finder\Finder;
 
 class Compiler
