@@ -12,7 +12,7 @@ Install library
 composer require mrsuh/php-generics
 ```
 
-Add cache directory to autoload
+Add cache directory to autoload (cache directory must be before main directory)
 composer.json
 ```json
 {
@@ -44,7 +44,7 @@ class Box<T> {
     }
 }
 ```
-Add Usage generic class
+Add usage generic class
 src/Usage.php
 ```php
 <?php
@@ -81,7 +81,7 @@ $usage->run();
 
 Generate concrete classes from generics
 ```bash
-composer dump-generics -v
+composer dump-generics -vv
 ```
 
 Dump autoload classes

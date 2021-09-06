@@ -119,7 +119,11 @@ class GenericClass
         $traitUseNodes = Parser::filter([$classNode], [Node\Stmt\TraitUse::class]);
         foreach ($traitUseNodes as $traitUseNode) {
             foreach ($traitUseNode->traits as &$traitNode) {
-                $this->handleClass($traitNode, $concreteGenericsMap, $result);
+                if (Parser::isGenericClass($traitNode)) {
+                    $this->handleClass($traitNode, $concreteGenericsMap, $result);
+                } else {
+                    Parser::setNodeType($traitNode, $concreteGenericsMap, $this->classFinder);
+                }
             }
         }
 

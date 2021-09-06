@@ -8,11 +8,11 @@
     "packages": [
         {
             "name": "php-generics/parser",
-            "version": "1.4.0",
+            "version": "1.4.1",
             "source": {
                 "type": "git",
                 "url": "git@gitlab.com:php-generics/parser.git",
-                "reference": "03b115204345f48564260eb25676e9eec71b2fcf"
+                "reference": "3561a9b65c3bd2227a0211b12762ee629979fdf8"
             },
             "require": {
                 "ext-tokenizer": "*",
@@ -54,7 +54,7 @@
                 "parser",
                 "php"
             ],
-            "time": "2021-08-18T14:24:34+00:00"
+            "time": "2021-09-06T14:53:30+00:00"
         },
         {
             "name": "psr/container",

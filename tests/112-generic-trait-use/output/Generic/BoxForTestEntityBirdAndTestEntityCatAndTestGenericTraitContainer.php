@@ -3,7 +3,8 @@
 namespace Test\Generic;
 
 use Test\Entity\Cat;
-class BoxForTestEntityBirdAndTestEntityCatAndInt
+class BoxForTestEntityBirdAndTestEntityCatAndTestGenericTraitContainer
 {
     use \Test\Generic\ContainerForTestEntityBirdAndTestEntityCatAndInt;
+    use \Test\Generic\TraitContainer;
 }

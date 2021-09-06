@@ -84,6 +84,9 @@ class DumpCommand extends BaseCommand
             $sourceDirectory = $filesystem->normalizePath($basePath . DIRECTORY_SEPARATOR . $directories[1]);
 
             try {
+                if ($this->getIO()->isDebug()) {
+                    $this->getIO()->write(sprintf('Handle directory <comment>%s</comment>', $sourceDirectory));
+                }
                 $result = $compiler->compile($sourceDirectory);
 
                 foreach ($result->getConcreteClasses() as $concreteClass) {
@@ -99,7 +102,10 @@ class DumpCommand extends BaseCommand
 
                     $cacheDirectory = $packageAutoload->getCacheDirectory();
 
-                    if (array_key_exists($cacheDirectory, $emptiedCacheDirectories)) {
+                    if (!array_key_exists($cacheDirectory, $emptiedCacheDirectories)) {
+                        if ($this->getIO()->isDebug()) {
+                            $this->getIO()->write(sprintf('Clear directory <comment>%s</comment>', $cacheDirectory));
+                        }
                         $filesystem->emptyDirectory($cacheDirectory);
                         $emptiedCacheDirectories[$cacheDirectory] = true;
                     }
