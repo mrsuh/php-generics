@@ -32,7 +32,7 @@ class DumpCommand extends BaseCommand
         $localPackage        = $composer->getPackage();
         $installationManager = $composer->getInstallationManager();
 
-        $libraryPackage = $localRepository->findPackage('php-generics/library', '*');
+        $libraryPackage = $localRepository->findPackage('mrsuh/php-generics', '*');
         $this->getIO()->write(sprintf('<info>%s</info> <comment>%s</comment>', $libraryPackage->getName(), $libraryPackage->getPrettyVersion()));
 
         if (!self::hasPackageCacheDirectory($localPackage)) {
