@@ -1,10 +1,10 @@
 {
-    "name": "php-generics/library",
+    "name": "mrsuh/php-generics",
     "type": "composer-plugin",
     "license": "MIT",
     "description": "PHP Generics library",
     "keywords": [
-        "generic"
+        "generics"
     ],
     "authors": [
         {
