@@ -12,7 +12,7 @@ Install library
 composer require mrsuh/php-generics
 ```
 
-Add cache directory to autoload (cache directory must be before main directory)
+Add directory for generated files(`"cache/"`) to autoload (directory must be placed before the main directory)
 composer.json
 ```json
 {
@@ -24,7 +24,9 @@ composer.json
 }
 ```
 
-Add Generic class
+## Example
+
+Add generic class
 src/Box.php
 ```php
 <?php
@@ -44,6 +46,7 @@ class Box<T> {
     }
 }
 ```
+
 Add usage generic class
 src/Usage.php
 ```php
@@ -94,6 +97,8 @@ Run bin/test.php script
 php bin/test.php
 ```
 
+See the [tests](./tests) folder for more examples.
+
 ## Tests
 
 ### How to run tests?
@@ -103,12 +108,10 @@ php bin/test.php
 
 ### How to add test?
 + Add directory 00-your-dir-name to ./tests
-
 + Generate output files and check it
 ```bash
 php bin/generate.php tests/000-your-dir-name/input tests/000-your-dir-name/output 'Test\'
 ```
-
 + Test output files
 ```bash
 php bin/test.php
