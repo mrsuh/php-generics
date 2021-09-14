@@ -7,11 +7,11 @@
 
 ## Table of contents
 
-* [How it works](##how-it-works)
-* [Quick start](##quick-start)
-* [Example](##example)
-* [Features](##features)
-* [Tests](##tests)
+* [How it works](#how-it-works)
+* [Quick start](#quick-start)
+* [Example](#example)
+* [Features](#features)
+* [Tests](#tests)
 
 ## How it works
 
@@ -136,7 +136,7 @@ php bin/test.php
 
 Composer autoload first checks the "cache" directory and then the "src" directory to load the classes.
 
-## Feature
+## Features
 
 #### What syntax is used?
 
