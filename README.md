@@ -9,6 +9,7 @@
 
 * [How it works](#how-it-works)
 * [Quick start](#quick-start)
+* [Quick start](#quick-start)
 * [Example](#example)
 * [Features](#features)
 * [Tests](#tests)
@@ -172,7 +173,7 @@ const FOO = 'FOO';
 const BAR = 'BAR';
 
 var_dump(new \DateTime<FOO,BAR>('now')); // is it generic?
-var_dump( (new \DateTime < FOO) , ( BAR > 'now') ); // no, it doesn't
+var_dump( (new \DateTime < FOO) , ( BAR > 'now') ); // no, it is not
 ```
 
 [Solution options](https://github.com/PHPGenerics/php-generics-rfc/issues/35#issuecomment-571546650)
