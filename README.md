@@ -9,7 +9,6 @@
 
 * [How it works](#how-it-works)
 * [Quick start](#quick-start)
-* [Quick start](#quick-start)
 * [Example](#example)
 * [Features](#features)
 * [Tests](#tests)
@@ -28,6 +27,7 @@ composer require mrsuh/php-generics
 ```
 
 Add directory(`"cache/"`) to composer autoload PSR-4 for generated classes. It should be placed before the main directory.
+
 composer.json
 ```json
 {
