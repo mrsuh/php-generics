@@ -293,9 +293,9 @@ class Test extends GenericClass<Cat> implements GenericInterface<Bird> {
       
        var_dump($var instanceof GenericInterface<int>);
       
-       var_dump(new GenericClass<int>::class);
+       var_dump(GenericClass<int>::class);
       
-       var_dump(new GenericClass<array>::CONSTANT);
+       var_dump(GenericClass<array>::CONSTANT);
       
        return new GenericClass<float>();
   }
@@ -333,11 +333,11 @@ class Test<T,V> extends GenericClass<T> implements GenericInterface<V> {
       
        var_dump($var instanceof T);
       
-       var_dump(new GenericClass<T>::class);
+       var_dump(GenericClass<T>::class);
       
        var_dump(T::class);
       
-       var_dump(new GenericClass<T>::CONSTANT);
+       var_dump(GenericClass<T>::CONSTANT);
       
        var_dump(T::CONSTANT);
       
