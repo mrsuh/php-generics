@@ -1,5 +1,7 @@
 # PHP generics written in PHP
 
+![Tests](https://github.com/mrsuh/php-generics/actions/workflows/tests.yml/badge.svg)
+
 ## Require
 
 * PHP >= 7.4
