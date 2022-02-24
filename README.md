@@ -133,6 +133,7 @@ composer.json
 ## Monomorphization
 
 A new class is generated for each generic argument combination.
+
 ![](./doc/monomorphization.png)
 
 ### Command
@@ -228,11 +229,12 @@ class Test<T,V> extends GenericClass<T> implements GenericInterface<V> {
 }
 ```
 
-:blue_book: You can read more about `monomorphization` [here](https://dev.to/mrsuh/generics-implementation-approaches-3bf0#Monomorphization).
+:blue_book: You can read more about `monomorphization` [here](https://dev.to/mrsuh/generics-implementation-approaches-3bf0).
 
 ## Type erasure
 
 A new class is generated without generics arguments.
+
 ![](./doc/type-erasure.png)
 
 ### Command
@@ -281,7 +283,7 @@ class Test extends GenericClass<Cat> implements GenericInterface<Bird> {
 }
 ```
 
-:blue_book: You can read more about `type-erasure` [here](https://dev.to/mrsuh/generics-implementation-approaches-3bf0#Monomorphization).
+:blue_book: You can read more about `type-erasure` [here](https://dev.to/mrsuh/generics-implementation-approaches-3bf0).
 
 ### Where in generic class can parameters be used?
 
