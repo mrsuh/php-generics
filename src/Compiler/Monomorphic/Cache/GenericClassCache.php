@@ -1,8 +1,8 @@
 <?php
 
-namespace Mrsuh\PhpGenerics\Compiler\Cache;
+namespace Mrsuh\PhpGenerics\Compiler\Monomorphic\Cache;
 
-use Mrsuh\PhpGenerics\Compiler\Generic\GenericClass;
+use Mrsuh\PhpGenerics\Compiler\Monomorphic\GenericClass;
 
 class GenericClassCache
 {

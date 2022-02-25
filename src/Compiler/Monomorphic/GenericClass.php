@@ -1,21 +1,19 @@
 <?php
 
-namespace Mrsuh\PhpGenerics\Compiler\Generic;
+namespace Mrsuh\PhpGenerics\Compiler\Monomorphic;
 
-use Mrsuh\PhpGenerics\Compiler\Cache\ConcreteClassCache;
-use Mrsuh\PhpGenerics\Compiler\Cache\GenericClassCache;
 use Mrsuh\PhpGenerics\Compiler\ClassFinder\ClassFinderInterface;
+use Mrsuh\PhpGenerics\Compiler\ClassParser;
+use Mrsuh\PhpGenerics\Compiler\CompilerResult;
+use Mrsuh\PhpGenerics\Compiler\ConcreteClass;
+use Mrsuh\PhpGenerics\Compiler\GenericParametersMap;
+use Mrsuh\PhpGenerics\Compiler\Monomorphic\Cache\ConcreteClassCache;
+use Mrsuh\PhpGenerics\Compiler\Monomorphic\Cache\GenericClassCache;
 use Mrsuh\PhpGenerics\Compiler\Parser;
 use PhpParser\Node;
-use PhpParser\Node\Expr\ClassConstFetch;
-use PhpParser\Node\Expr\Instanceof_;
-use PhpParser\Node\Expr\New_;
 use PhpParser\Node\GenericParameter;
 use PhpParser\Node\Stmt\Class_;
-use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Interface_;
-use PhpParser\Node\Stmt\Namespace_;
-use PhpParser\Node\Stmt\Property;
 use PhpParser\Node\Stmt\Trait_;
 
 class GenericClass
@@ -46,16 +44,11 @@ class GenericClass
         $this->genericClassCache  = $genericClassCache;
         $this->ast                = $ast;
 
-        /** @var Namespace_ $namespaceNode */
-        $namespaceNode   = Parser::filterOne($this->ast, [Namespace_::class]);
-        $this->namespace = $namespaceNode->name->toString();
+        $parser = new ClassParser($ast);
 
-        /** @var Node\Stmt\ClassLike $classNode */
-        $classNode = Parser::filterOne($this->ast, [Class_::class, Interface_::class, Trait_::class]);
-
-        $this->name = $classNode->name->toString();
-
-        $this->parameters = (array)Parser::getGenericParameters($classNode);
+        $this->namespace  = $parser->getNamespace();
+        $this->name       = $parser->getClassName();
+        $this->parameters = $parser->getParameters();
     }
 
     public function getConcreteClassCacheKey(array $arguments): string
@@ -82,9 +75,8 @@ class GenericClass
         return $this->namespace . '\\' . $this->generateConcreteClassName($genericTypes);
     }
 
-    public function generateConcreteClass(array $arguments, Result $result): ConcreteClass
+    public function generateConcreteClass(array $arguments, CompilerResult $result): ConcreteClass
     {
-        /** Usage class */
         if (count($this->parameters) === 0 && count($arguments) === 0) {
             $concreteGenericsMap = new GenericParametersMap($this->classFinder);
         } else {
@@ -93,43 +85,28 @@ class GenericClass
 
         $ast = Parser::cloneAst($this->ast);
 
+        $parser = new ClassParser($ast);
+
         /** @var Node\Stmt\ClassLike $classNode */
         $classNode = Parser::filterOne($ast, [Class_::class, Interface_::class, Trait_::class]);
 
-        $extendsNodes = [];
-        if ($classNode instanceof Class_ && $classNode->extends !== null) {
-            $extendsNodes = [$classNode->extends];
-        }
-
-        if ($classNode instanceof Interface_) {
-            $extendsNodes = $classNode->extends;
-        }
-
-        foreach ($extendsNodes as &$extendsNode) {
+        foreach ($parser->getExtendNodes() as $extendsNode) {
             $this->handleClass($extendsNode, $concreteGenericsMap, $result);
         }
 
-        if ($classNode instanceof Class_) {
-            foreach ($classNode->implements as &$implementsNode) {
-                $this->handleClass($implementsNode, $concreteGenericsMap, $result);
+        foreach ($parser->getImplementNodes() as $implementsNode) {
+            $this->handleClass($implementsNode, $concreteGenericsMap, $result);
+        }
+
+        foreach ($parser->getTraitNodes() as &$traitNode) {
+            if (Parser::isGenericClass($traitNode)) {
+                $this->handleClass($traitNode, $concreteGenericsMap, $result);
+            } else {
+                Parser::setNodeType($traitNode, $concreteGenericsMap, $this->classFinder);
             }
         }
 
-        /** @var Node\Stmt\TraitUse[] $traitUseNodes */
-        $traitUseNodes = Parser::filter([$classNode], [Node\Stmt\TraitUse::class]);
-        foreach ($traitUseNodes as $traitUseNode) {
-            foreach ($traitUseNode->traits as &$traitNode) {
-                if (Parser::isGenericClass($traitNode)) {
-                    $this->handleClass($traitNode, $concreteGenericsMap, $result);
-                } else {
-                    Parser::setNodeType($traitNode, $concreteGenericsMap, $this->classFinder);
-                }
-            }
-        }
-
-        /** @var Property[] $propertyNodes */
-        $propertyNodes = Parser::filter([$classNode], [Property::class]);
-        foreach ($propertyNodes as $propertyNode) {
+        foreach ($parser->getPropertyNodes() as $propertyNode) {
             if ($propertyNode->type !== null) {
                 foreach (Parser::getNodeTypes($propertyNode->type) as &$nodeType) {
                     if (Parser::isGenericClass($nodeType)) {
@@ -142,9 +119,7 @@ class GenericClass
             }
         }
 
-        /** @var ClassMethod[] $classMethodNodes */
-        $classMethodNodes = Parser::filter([$classNode], [ClassMethod::class]);
-        foreach ($classMethodNodes as $classMethodNode) {
+        foreach ($parser->getClassMethodNodes() as $classMethodNode) {
             foreach ($classMethodNode->params as $param) {
                 if ($param->type !== null) {
                     foreach (Parser::getNodeTypes($param->type) as &$nodeType) {
@@ -170,9 +145,7 @@ class GenericClass
             }
         }
 
-        /** @var Instanceof_[] $newExprNodes */
-        $instanceofExprNodes = Parser::filter([$classNode], [Instanceof_::class]);
-        foreach ($instanceofExprNodes as $instanceofExprNode) {
+        foreach ($parser->getInstanceOfExprNodes() as $instanceofExprNode) {
             if (Parser::isGenericClass($instanceofExprNode->class)) {
                 $this->handleClass($instanceofExprNode->class, $concreteGenericsMap, $result);
             } else {
@@ -180,9 +153,7 @@ class GenericClass
             }
         }
 
-        /** @var New_[] $newExprNodes */
-        $newExprNodes = Parser::filter([$classNode], [New_::class]);
-        foreach ($newExprNodes as $newExprNode) {
+        foreach ($parser->getNewExprNodes() as $newExprNode) {
             if (Parser::isGenericClass($newExprNode->class)) {
                 $this->handleClass($newExprNode->class, $concreteGenericsMap, $result);
             } else {
@@ -190,9 +161,7 @@ class GenericClass
             }
         }
 
-        /** @var ClassConstFetch[] $classConstFetchStmtNodes */
-        $classConstFetchStmtNodes = Parser::filter([$classNode], [ClassConstFetch::class]);
-        foreach ($classConstFetchStmtNodes as $classConstFetchStmtNode) {
+        foreach ($parser->getClassConstFetchNodes() as $classConstFetchStmtNode) {
             if (Parser::isGenericClass($classConstFetchStmtNode->class)) {
                 $this->handleClass($classConstFetchStmtNode->class, $concreteGenericsMap, $result);
             } else {
@@ -210,7 +179,7 @@ class GenericClass
         );
     }
 
-    private function handleClass(Node &$node, GenericParametersMap $genericParametersMap, Result $result): void
+    private function handleClass(Node &$node, GenericParametersMap $genericParametersMap, CompilerResult $result): void
     {
         if (!Parser::isGenericClass($node)) {
             return;
@@ -229,7 +198,7 @@ class GenericClass
 
         $genericClass = $this->genericClassCache->get($genericClassFqn);
 
-        $arguments = $genericParametersMap->generateFullArgumentsForNewGenericClass((array)Parser::getGenericParameters($node));
+        $arguments = $genericParametersMap->generateFullArgumentsForNewGenericClass(Parser::getGenericParameters($node));
 
         $concreteClassCacheKey = $genericClass->getConcreteClassCacheKey($arguments);
         if (!$this->concreteClassCache->has($concreteClassCacheKey)) {

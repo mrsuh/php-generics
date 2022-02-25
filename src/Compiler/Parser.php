@@ -3,7 +3,6 @@
 namespace Mrsuh\PhpGenerics\Compiler;
 
 use Mrsuh\PhpGenerics\Compiler\ClassFinder\ClassFinderInterface;
-use Mrsuh\PhpGenerics\Compiler\Generic\GenericParametersMap;
 use PhpParser\Lexer\Emulative;
 use PhpParser\Node;
 use PhpParser\Node\Expr\ClassConstFetch;

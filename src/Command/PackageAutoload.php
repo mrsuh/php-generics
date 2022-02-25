@@ -4,15 +4,17 @@ namespace Mrsuh\PhpGenerics\Command;
 
 class PackageAutoload
 {
+    private string $namespace;
+    private string $path;
     private string $sourceDirectory;
     private string $cacheDirectory;
-    private string $namespace;
 
-    public function __construct(string $namespace, string $sourceDirectory, string $cacheDirectory)
+    public function __construct(string $namespace, string $path, string $sourceDirectory, string $cacheDirectory)
     {
+        $this->namespace       = $namespace;
+        $this->path            = $path;
         $this->sourceDirectory = $sourceDirectory;
         $this->cacheDirectory  = $cacheDirectory;
-        $this->namespace       = $namespace;
     }
 
     public function getSourceDirectory(): string
@@ -23,6 +25,16 @@ class PackageAutoload
     public function getCacheDirectory(): string
     {
         return $this->cacheDirectory;
+    }
+
+    public function getSourcePath(): string
+    {
+        return $this->path . DIRECTORY_SEPARATOR . $this->sourceDirectory;
+    }
+
+    public function getCachePath(): string
+    {
+        return $this->path . DIRECTORY_SEPARATOR . $this->cacheDirectory;
     }
 
     public function getNamespace(): string

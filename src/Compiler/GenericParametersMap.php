@@ -1,9 +1,8 @@
 <?php
 
-namespace Mrsuh\PhpGenerics\Compiler\Generic;
+namespace Mrsuh\PhpGenerics\Compiler;
 
 use Mrsuh\PhpGenerics\Compiler\ClassFinder\ClassFinderInterface;
-use Mrsuh\PhpGenerics\Compiler\Parser;
 use PhpParser\Node\GenericParameter;
 
 class GenericParametersMap

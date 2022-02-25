@@ -3,44 +3,66 @@
 use Composer\Autoload\ClassLoader;
 use Mrsuh\PhpGenerics\Command\PackageAutoload;
 use Mrsuh\PhpGenerics\Compiler\ClassFinder\ClassFinder;
-use Mrsuh\PhpGenerics\Compiler\Compiler;
+use Mrsuh\PhpGenerics\Compiler\CompilerInterface;
+use Mrsuh\PhpGenerics\Compiler\Monomorphic\Compiler as MonomorphicCompiler;
+use Mrsuh\PhpGenerics\Compiler\TypeErased\Compiler as TypeErasedCompiler;
+use Symfony\Component\Finder\Finder;
 use Mrsuh\PhpGenerics\Compiler\Parser;
 use Mrsuh\PhpGenerics\Compiler\Printer;
-use Symfony\Component\Finder\Finder;
 
 require __DIR__ . '/../vendor/autoload.php';
 
+$type = $argv[1];
+
+if (!in_array($type, [CompilerInterface::MONOMORPHIC, CompilerInterface::TYPE_ERASED])) {
+    echo 'Invalid argument "type"' . PHP_EOL;
+    exit(1);
+}
+
 $directories = (new Finder())
-    ->in(__DIR__ . '/../tests')
+    ->in(__DIR__ . '/../tests/' . $type)
     ->depth('== 0')
     ->sortByName()
     ->directories();
 
 $printer = new Printer();
 
+$inputDirectory  = 'input';
+$outputDirectory = 'output';
+
 $allTestsSuccess = true;
 foreach ($directories as $directory) {
     $success = true;
 
-    $inputDirectory  = $directory->getRealPath() . '/input';
-    $outputDirectory = $directory->getRealPath() . '/output';
+    $inputPath  = $directory->getRealPath() . DIRECTORY_SEPARATOR . $inputDirectory;
+    $outputPath = $directory->getRealPath() . DIRECTORY_SEPARATOR . $outputDirectory;
 
-    $inputFiles  = (new Finder())->in($inputDirectory)->name('*.php')->files();
-    $outputFiles = (new Finder())->in($outputDirectory)->name('*.php')->files();
+    $inputFiles  = (new Finder())->in($inputPath)->name('*.php')->files();
+    $outputFiles = (new Finder())->in($outputPath)->name('*.php')->files();
 
     if ($outputFiles->count() === 0) {
         continue;
     }
 
     $classLoader = new ClassLoader();
-    $classLoader->setPsr4('Test\\', $inputDirectory);
+    $classLoader->setPsr4('Test\\', $inputPath);
     $classFinder = new ClassFinder($classLoader);
-    $package     = new PackageAutoload('Test\\', $inputDirectory, $outputDirectory);
+    $package     = new PackageAutoload('Test\\', $directory->getRealPath(), $inputDirectory, $outputDirectory);
 
-    $compiler = new Compiler($classFinder);
+    switch ($type) {
+        case CompilerInterface::MONOMORPHIC:
+            $compiler = new MonomorphicCompiler($classFinder);
+            break;
+        case CompilerInterface::TYPE_ERASED:
+            $compiler = new TypeErasedCompiler($classFinder);
+            break;
+        default:
+            echo 'Invalid argument "type"' . PHP_EOL;
+            exit(1);
+    }
 
     try {
-        $result = $compiler->compile($inputDirectory);
+        $result = $compiler->compile($inputPath);
     } catch (\Exception $exception) {
         echo $exception->getMessage() . PHP_EOL;
         echo $exception->getTraceAsString() . PHP_EOL;
@@ -53,7 +75,7 @@ foreach ($directories as $directory) {
     }
 
     foreach ($result->getConcreteClasses() as $concreteClass) {
-        $concreteFilePath     = $outputDirectory . DIRECTORY_SEPARATOR . ltrim($package->getRelativeFilePathByClassFqn($concreteClass->fqn), DIRECTORY_SEPARATOR);
+        $concreteFilePath     = $outputPath . DIRECTORY_SEPARATOR . ltrim($package->getRelativeFilePathByClassFqn($concreteClass->fqn), DIRECTORY_SEPARATOR);
         $concreteClassContent = file_get_contents($concreteFilePath);
         try {
             $concreteClassAst = Parser::parse($concreteClassContent);

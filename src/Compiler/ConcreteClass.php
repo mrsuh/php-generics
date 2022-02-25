@@ -1,6 +1,6 @@
 <?php
 
-namespace Mrsuh\PhpGenerics\Compiler\Generic;
+namespace Mrsuh\PhpGenerics\Compiler;
 
 use PhpParser\Node;
 

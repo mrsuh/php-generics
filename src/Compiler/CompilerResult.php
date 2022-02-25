@@ -1,8 +1,8 @@
 <?php
 
-namespace Mrsuh\PhpGenerics\Compiler\Generic;
+namespace Mrsuh\PhpGenerics\Compiler;
 
-class Result
+class CompilerResult
 {
     /** @var ConcreteClass[] */
     private array $concreteClasses = [];

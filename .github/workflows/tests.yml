@@ -33,4 +33,4 @@ jobs:
                 run:  "composer install --no-interaction --no-progress --no-suggest"
 
             -   name: "Tests"
-                run:  "php bin/test.php"
+                run:  "composer test"

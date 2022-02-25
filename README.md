@@ -1,59 +1,24 @@
 # PHP generics written in PHP
 
-![Tests](https://github.com/mrsuh/php-generics/actions/workflows/tests.yml/badge.svg)
-
-## Require
-
-* PHP >= 7.4
-* Composer (PSR-4 Autoload)
+![](https://github.com/mrsuh/php-generics/actions/workflows/tests.yml/badge.svg)
+![](https://img.shields.io/github/license/mrsuh/php-generics.svg)
+![](https://img.shields.io/github/v/release/mrsuh/php-generics)
 
 ## Table of contents
 
 * [How it works](#how-it-works)
-* [Quick start](#quick-start)
-* [Example](#example)
+* [Installation](#installation)
+* [Monomorphization](#monomorphization)
+* [Type erasure](#type-erasure)
 * [Features](#features)
 * [Tests](#tests)
 
 ## How it works
 
+In a nutshell:
 + parse generics classes;
-+ generate concrete classes based on them;
-+ say to "composer autoload" to load files from directory with generated classes first and then load classes from main directory.
-
-## Quick start
-
-Install library
-```bash
-composer require mrsuh/php-generics
-```
-
-Add directory(`"cache/"`) to composer autoload PSR-4 for generated classes. It should be placed before the main directory.
-
-composer.json
-```json
-{
-    "autoload": { 
-        "psr-4": {
-            "App\\": ["cache/","src/"]
-        }
-    }
-}
-```
-
-Generate concrete classes from generic classes with `composer dump-generics` command
-```bash
-composer dump-generics -vv
-```
-
-Generate vendor/autoload.php with `composer dump-autoload` command
-```bash
-composer dump-autoload
-```
-
-## Example
-
-!! You can find repository with this example [here](https://github.com/mrsuh/php-generics-example).
++ generate concrete classes based on them (you can choose `monomorphization` or `type-erasure`);
++ autoload concrete classes instead of generics classes.
 
 For example, you need to add several PHP files:
 + generic class `Box`
@@ -138,6 +103,252 @@ php bin/test.php
 ```
 
 Composer autoload first checks the "cache" directory and then the "src" directory to load the classes.
+
+:blue_book: You can find repository with this example [here](https://github.com/mrsuh/php-generics-example).
+
+## Installation
+
+#### Require
+* PHP >= 7.4
+* Composer (PSR-4 Autoload)
+
+Install library
+```bash
+composer require mrsuh/php-generics
+```
+
+Add directory(`"cache/"`) to composer autoload PSR-4 for generated classes. It should be placed before the main directory.
+
+composer.json
+```json
+{
+    "autoload": { 
+        "psr-4": {
+            "App\\": ["cache/","src/"]
+        }
+    }
+}
+```
+
+## Monomorphization
+
+A new class is generated for each generic argument combination.
+
+Before `monomorphization`:
+```php
+<?php
+
+namespace App;
+
+class Box<T> {
+
+    private ?T $data = null;
+
+    public function set(T $data): void
+    {
+        $this->data = $data;
+    }
+
+    public function get(): ?T
+    {
+        return $this->data;
+    }
+}
+```
+
+After `monomorphization`:
+```php
+<?php
+
+namespace App;
+
+class BoxForInt {
+
+    private ?int $data = null;
+    
+    public function set(int $data) : void
+    {
+        $this->data = $data;
+    }
+    
+    public function get() : ?int
+    {
+        return $this->data;
+    }
+}
+```
+#### Command
+```bash
+composer dump-generics
+```
+
+#### Where in class can generics be used?
+```php
+<?php
+
+namespace App;
+
+use App\Entity\Cat;
+use App\Entity\Bird;
+use App\Entity\Dog;
+
+class Test extends GenericClass<Cat> implements GenericInterface<Bird> { // <-- extends/implements
+ 
+  use GenericTrait<Dog>; // <-- trait use
+ 
+  private GenericClass<int>|GenericClass<Dog> $var; // <-- property type
+ 
+  public function test(GenericInterface<int>|GenericInterface<Dog> $var): GenericClass<string>|GenericClass<Bird> { // <-- method argument/return type
+      
+       var_dump($var instanceof GenericInterface<int>); // <-- instanceof
+      
+       var_dump(GenericClass<int>::class); // <-- class constants      
+       var_dump(GenericClass<array>::CONSTANT); // <-- class constants
+      
+       return new GenericClass<float>(); // <-- new
+  }
+}
+```
+
+#### Where in generic class can parameters be used?
+```php
+<?php
+
+namespace App;
+
+class Test<T,V> extends GenericClass<T> implements GenericInterface<V> { // <-- extends/implements
+ 
+  use GenericTrait<T>; // <-- trait use
+  use T; // <-- trait use
+ 
+  private T|GenericClass<V> $var; // <-- property type
+ 
+  public function test(T|GenericInterface<V> $var): T|GenericClass<V> { // <-- method argument/return type
+      
+       var_dump($var instanceof GenericInterface<V>); // <-- instanceof      
+       var_dump($var instanceof T); // <-- instanceof
+      
+       var_dump(GenericClass<T>::class); // <-- class constants   
+       var_dump(T::class); // <-- class constants
+       var_dump(GenericClass<T>::CONSTANT); // <-- class constants
+       var_dump(T::CONSTANT); // <-- class constants
+      
+       $obj1 = new T(); // <-- new
+       $obj2 = new GenericClass<V>(); // <-- new
+      
+       return $obj2;
+  }
+}
+```
+
+:blue_book: You can read more about `monomorphization` [here](https://dev.to/mrsuh/generics-implementation-approaches-3bf0).
+
+## Type erasure
+
+A new class is generated without generics arguments.
+
+Before `type erasure`:
+```php
+<?php
+
+namespace App;
+
+class Box<T> {
+
+    private ?T $data = null;
+
+    public function set(T $data): void
+    {
+        $this->data = $data;
+    }
+
+    public function get(): ?T
+    {
+        return $this->data;
+    }
+}
+```
+
+After `type erasure`:
+```php
+<?php
+
+namespace App;
+
+class Box {
+
+    private $data = null;
+    
+    public function set($data) : void
+    {
+        $this->data = $data;
+    }
+    
+    public function get()
+    {
+        return $this->data;
+    }
+}
+```
+
+#### Command
+```bash
+composer dump-generics --type=type-erasure
+```
+
+#### Where in class can generics be used?
+```php
+<?php
+
+namespace App;
+
+use App\Entity\Cat;
+use App\Entity\Bird;
+use App\Entity\Dog;
+
+class Test extends GenericClass<Cat> implements GenericInterface<Bird> { // <-- extends/implements
+ 
+  use GenericTrait<Dog>; // <-- trait use
+ 
+  private GenericClass<int>|GenericClass<Dog> $var; // <-- property type
+ 
+  public function test(GenericInterface<int>|GenericInterface<Dog> $var): GenericClass<string>|GenericClass<Bird> { // <-- method argument/return type
+      
+       var_dump($var instanceof GenericInterface<int>); // <-- instanceof
+      
+       var_dump(GenericClass<int>::class); // <-- class constants      
+       var_dump(GenericClass<array>::CONSTANT); // <-- class constants
+      
+       return new GenericClass<float>(); // <-- new
+  }
+}
+```
+
+#### Where in generic class can parameters be used?
+```php
+<?php
+
+namespace App;
+
+class Test<T,V> extends GenericClass<T> implements GenericInterface<V> { // <-- extends/implements
+ 
+  use GenericTrait<T>; // <-- trait use
+ 
+  private GenericClass<V> $var; // <-- property type
+ 
+  public function test(T|GenericInterface<V> $var): T|GenericClass<V> { // <-- method argument/return type
+      
+       var_dump($var instanceof GenericInterface<V>); // <-- instanceof          
+      
+       var_dump(GenericClass<T>::class); // <-- class constants           
+       var_dump(GenericClass<T>::CONSTANT); // <-- class constants      
+      
+       return new GenericClass<V>(); // <-- new           
+  }
+}
+```
+
+:blue_book: You can read more about `type-erasure` [here](https://dev.to/mrsuh/generics-implementation-approaches-3bf0).
 
 ## Features
 
@@ -263,94 +474,6 @@ class Usage {
 }
 ```
 
-#### Where in class can generics be used?
-
-+ extends
-+ implements
-+ trait use
-+ property type
-+ method argument type
-+ method return type
-+ instanceof
-+ new
-+ class constants
-
-An example of class that uses generics:
-```php
-<?php
-
-namespace App;
-
-use App\Entity\Cat;
-use App\Entity\Bird;
-use App\Entity\Dog;
-
-class Test extends GenericClass<Cat> implements GenericInterface<Bird> {
- 
-  use GenericTrait<Dog>;
- 
-  private GenericClass<int>|GenericClass<Dog> $var;
- 
-  public function test(GenericInterface<int>|GenericInterface<Dog> $var): GenericClass<string>|GenericClass<Bird> {
-      
-       var_dump($var instanceof GenericInterface<int>);
-      
-       var_dump(GenericClass<int>::class);
-      
-       var_dump(GenericClass<array>::CONSTANT);
-      
-       return new GenericClass<float>();
-  }
-}
-```
-
-#### Where in generic class can parameters be used?
-
-+ extends
-+ implements
-+ trait use
-+ property type
-+ method argument type
-+ method return type
-+ instanceof
-+ new
-+ class constants
-
-And example of generic class:
-```php
-<?php
-
-namespace App;
-
-class Test<T,V> extends GenericClass<T> implements GenericInterface<V> {
- 
-  use GenericTrait<T>;
-  use T;
- 
-  private T|GenericClass<V> $var;
- 
-  public function test(T|GenericInterface<V> $var): T|GenericClass<V> {
-      
-       var_dump($var instanceof GenericInterface<V>);
-      
-       var_dump($var instanceof T);
-      
-       var_dump(GenericClass<T>::class);
-      
-       var_dump(T::class);
-      
-       var_dump(GenericClass<T>::CONSTANT);
-      
-       var_dump(T::CONSTANT);
-      
-       $obj1 = new T();
-       $obj2 = new GenericClass<V>();
-      
-       return $obj2;
-  }
-}
-```
-
 #### How fast is it?
 
 All concrete classes are pre-generated and can be cached(should not affect performance).
@@ -378,13 +501,14 @@ It can't be, because information about generics arguments is erased after concre
 ### How to run tests?
 
 ```bash
-php bin/test.php
+composer test
 ```
 
 ### How to add test?
 
-+ Add directory 00-your-dir-name to ./tests
++ Add directory 00-your-dir-name to ./tests/{monomorphic/type-erased}
 + Generate output files and check it
 ```bash
-php bin/generate.php tests/000-your-dir-name/input tests/000-your-dir-name/output 'Test\'
+php bin/generate.php monomorphic tests/monomorphic/000-your-dir-name
+php bin/generate.php type-erased tests/type-erased/000-your-dir-name
 ```

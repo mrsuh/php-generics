@@ -4,46 +4,58 @@ use Composer\Autoload\ClassLoader;
 use Composer\Util\Filesystem;
 use Mrsuh\PhpGenerics\Command\PackageAutoload;
 use Mrsuh\PhpGenerics\Compiler\ClassFinder\ClassFinder;
-use Mrsuh\PhpGenerics\Compiler\Compiler;
+use Mrsuh\PhpGenerics\Compiler\CompilerInterface;
+use Mrsuh\PhpGenerics\Compiler\Monomorphic\Compiler as MonomorphicCompiler;
 use Mrsuh\PhpGenerics\Compiler\Printer;
+use Mrsuh\PhpGenerics\Compiler\TypeErased\Compiler as TypeErasedCompiler;
 
 require __DIR__ . '/../vendor/autoload.php';
 
+$type = $argv[1];
+
+if (!in_array($type, [CompilerInterface::MONOMORPHIC, CompilerInterface::TYPE_ERASED])) {
+    echo 'Invalid argument "type"' . PHP_EOL;
+    exit(1);
+}
+
+$psr4Prefix = 'Test\\';
+
 $timeStart = microtime(true);
 
-$sourceDir = $argv[1];
-if (empty($sourceDir) || !is_dir($sourceDir)) {
-    echo "Source directory doesn't exists\n";
+$basePath = $argv[2];
+if (empty($basePath) || !is_dir($basePath)) {
+    echo "Base path doesn't exists\n";
     exit(1);
 }
 
-$outputDir = $argv[2];
-if (empty($outputDir) || !is_dir($outputDir)) {
-    echo "Output directory doesn't exists\n";
-    exit(1);
-}
-
-$psr4Prefix = $argv[3];
-if (empty($psr4Prefix)) {
-    echo "Invalid prefix\n";
-    exit(1);
-}
+$inputPath  = $basePath . DIRECTORY_SEPARATOR . 'input';
+$outputPath = $basePath . DIRECTORY_SEPARATOR . 'output';
 
 $classLoader = new ClassLoader();
-$classLoader->setPsr4($psr4Prefix, $sourceDir);
+$classLoader->setPsr4($psr4Prefix, $inputPath);
 $classFinder = new ClassFinder($classLoader);
 $printer     = new Printer();
 $filesystem  = new Filesystem();
-$filesystem->ensureDirectoryExists($sourceDir);
-$filesystem->removeDirectory($outputDir);
-$filesystem->ensureDirectoryExists($outputDir);
+$filesystem->ensureDirectoryExists($inputPath);
+$filesystem->removeDirectory($outputPath);
+$filesystem->ensureDirectoryExists($outputPath);
 
-$package = new PackageAutoload('Test\\', $sourceDir, $outputDir);
+$package = new PackageAutoload('Test\\', $basePath, 'input', 'output');
 
-$compiler = new Compiler($classFinder);
+switch ($type) {
+    case CompilerInterface::MONOMORPHIC:
+        $compiler = new MonomorphicCompiler($classFinder);
+        break;
+    case CompilerInterface::TYPE_ERASED:
+        $compiler = new TypeErasedCompiler($classFinder);
+        break;
+    default:
+        echo 'Invalid argument "type"' . PHP_EOL;
+        exit(1);
+}
 
 try {
-    $result = $compiler->compile($sourceDir);
+    $result = $compiler->compile($inputPath);
 } catch (\Exception $exception) {
     echo $exception->getMessage() . PHP_EOL;
     echo $exception->getTraceAsString() . PHP_EOL;
@@ -51,7 +63,7 @@ try {
 }
 
 foreach ($result->getConcreteClasses() as $concreteClass) {
-    $concreteFilePath = $outputDir . DIRECTORY_SEPARATOR . ltrim($package->getRelativeFilePathByClassFqn($concreteClass->fqn), DIRECTORY_SEPARATOR);
+    $concreteFilePath = $outputPath . DIRECTORY_SEPARATOR . ltrim($package->getRelativeFilePathByClassFqn($concreteClass->fqn), DIRECTORY_SEPARATOR);
     $filesystem->ensureDirectoryExists(dirname($concreteFilePath));
     file_put_contents($concreteFilePath, $printer->printFile($concreteClass->ast));
 
