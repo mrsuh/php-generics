@@ -6,6 +6,7 @@ use Mrsuh\PhpGenerics\Compiler\ClassFinder\ClassFinderInterface;
 use Mrsuh\PhpGenerics\Compiler\ClassParser;
 use Mrsuh\PhpGenerics\Compiler\CompilerResult;
 use Mrsuh\PhpGenerics\Compiler\ConcreteClass;
+use Mrsuh\PhpGenerics\Compiler\GenericParametersMap;
 use Mrsuh\PhpGenerics\Compiler\Monomorphic\Cache\ConcreteClassCache;
 use Mrsuh\PhpGenerics\Compiler\Monomorphic\Cache\GenericClassCache;
 use Mrsuh\PhpGenerics\Compiler\Parser;
@@ -197,7 +198,7 @@ class GenericClass
 
         $genericClass = $this->genericClassCache->get($genericClassFqn);
 
-        $arguments = $genericParametersMap->generateFullArgumentsForNewGenericClass((array)Parser::getGenericParameters($node));
+        $arguments = $genericParametersMap->generateFullArgumentsForNewGenericClass(Parser::getGenericParameters($node));
 
         $concreteClassCacheKey = $genericClass->getConcreteClassCacheKey($arguments);
         if (!$this->concreteClassCache->has($concreteClassCacheKey)) {

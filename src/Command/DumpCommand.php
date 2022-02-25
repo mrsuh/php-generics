@@ -10,9 +10,10 @@ use Composer\Repository\RepositoryInterface;
 use Composer\Util\Filesystem;
 use Mrsuh\PhpGenerics\Compiler\ClassFinder\ClassFinder;
 use Mrsuh\PhpGenerics\Compiler\CompilerInterface;
+use Mrsuh\PhpGenerics\Compiler\FileIterator;
 use Mrsuh\PhpGenerics\Compiler\Monomorphic\Compiler as MonomorphicCompiler;
-use Mrsuh\PhpGenerics\Compiler\TypeErased\Compiler as TypeErasedCompiler;
 use Mrsuh\PhpGenerics\Compiler\Printer;
+use Mrsuh\PhpGenerics\Compiler\TypeErased\Compiler as TypeErasedCompiler;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -108,16 +109,30 @@ class DumpCommand extends BaseCommand
                 continue;
             }
 
-            $sourceDirectory = $filesystem->normalizePath($directories[1]);
-            $sourcePath      = $filesystem->normalizePath($basePath . DIRECTORY_SEPARATOR . $directories[1]);
+            $sourcePath = $filesystem->normalizePath($basePath . DIRECTORY_SEPARATOR . $directories[1]);
+
+            foreach (FileIterator::iterateAsFilePath($sourcePath) as $filePath) {
+                $packageAutoload = self::findPackageAutoloadByFilePath($packageAutoloads, $filePath);
+                if ($packageAutoload === null) {
+                    throw new \RuntimeException(sprintf('Can\'t find package autoload for file "%s"', $filePath));
+                }
+
+                $cachePath = $filesystem->normalizePath($packageAutoload->getCachePath());
+                if (!array_key_exists($cachePath, $emptiedCacheDirectories)) {
+                    if ($this->getIO()->isDebug()) {
+                        $this->getIO()->write(sprintf('Clear cache directory <comment>%s</comment>', self::getRelativePath($filesystem, $basePath, $cachePath)));
+                    }
+                    $filesystem->emptyDirectory($cachePath);
+                    $emptiedCacheDirectories[$cachePath] = true;
+                }
+            }
 
             try {
                 if ($this->getIO()->isDebug()) {
-                    $this->getIO()->write(sprintf('Handle source directory <comment>%s</comment>', $sourceDirectory));
+                    $this->getIO()->write(sprintf('Handle source directory <comment>%s</comment>', self::getRelativePath($filesystem, $basePath, $sourcePath)));
                 }
-                $result = $compiler->compile($sourcePath);
 
-                foreach ($result->getConcreteClasses() as $concreteClass) {
+                foreach ($compiler->compile($sourcePath)->getConcreteClasses() as $concreteClass) {
                     $genericFilePath = $filesystem->normalizePath($classLoader->findFile($concreteClass->genericFqn));
                     if (!$genericFilePath) {
                         throw new \RuntimeException(sprintf('Can\'t find file for class "%s"', $concreteClass->genericFqn));
@@ -128,17 +143,7 @@ class DumpCommand extends BaseCommand
                         throw new \RuntimeException(sprintf('Can\'t find package autoload for file "%s"', $genericFilePath));
                     }
 
-                    $cachePath = $filesystem->normalizePath($packageAutoload->getCachePath());
-                    if (!array_key_exists($cachePath, $emptiedCacheDirectories)) {
-                        if ($this->getIO()->isDebug()) {
-                            $this->getIO()->write(sprintf('Clear cache directory <comment>%s</comment>', $filesystem->normalizePath($packageAutoload->getCacheDirectory())));
-                        }
-                        $filesystem->emptyDirectory($cachePath);
-                        $emptiedCacheDirectories[$cachePath] = true;
-                    }
-
-                    $relativeFilePath = $filesystem->normalizePath($packageAutoload->getCacheDirectory() . $packageAutoload->getRelativeFilePathByClassFqn($concreteClass->fqn));
-                    $concreteFilePath = $filesystem->normalizePath($cachePath . DIRECTORY_SEPARATOR . $packageAutoload->getRelativeFilePathByClassFqn($concreteClass->fqn));
+                    $concreteFilePath = $filesystem->normalizePath($packageAutoload->getCachePath() . DIRECTORY_SEPARATOR . $packageAutoload->getRelativeFilePathByClassFqn($concreteClass->fqn));
                     $filesystem->ensureDirectoryExists(dirname($concreteFilePath));
                     if (file_put_contents($concreteFilePath, $printer->printFile($concreteClass->ast)) === false) {
                         throw new \RuntimeException(sprintf('Can\'t write into file "%s"', $concreteFilePath));
@@ -148,7 +153,7 @@ class DumpCommand extends BaseCommand
                     if ($this->getIO()->isVerbose()) {
                         $line = sprintf('  - %s', $concreteClass->fqn);
                         if ($this->getIO()->isVeryVerbose()) {
-                            $line .= sprintf(' <comment>%s</comment>', $relativeFilePath);
+                            $line .= sprintf(' <comment>%s</comment>', self::getRelativePath($filesystem, $basePath, $concreteFilePath));
                         }
                         $this->getIO()->write($line);
                     }
@@ -287,5 +292,10 @@ class DumpCommand extends BaseCommand
         }
 
         return $autoload;
+    }
+
+    private static function getRelativePath(Filesystem $filesystem, string $basePath, string $filePath): string
+    {
+        return ltrim($filesystem->normalizePath(str_replace($basePath, '', $filePath)), DIRECTORY_SEPARATOR);
     }
 }

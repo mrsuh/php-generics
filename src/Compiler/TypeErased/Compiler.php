@@ -15,18 +15,16 @@ use PhpParser\Node\Stmt\Trait_;
 class Compiler implements CompilerInterface
 {
     private ClassFinderInterface $classFinder;
-    private FileIterator         $fileIterator;
 
     public function __construct(ClassFinderInterface $classFinder)
     {
-        $this->classFinder  = $classFinder;
-        $this->fileIterator = new FileIterator();
+        $this->classFinder = $classFinder;
     }
 
     public function compile(string $directory): CompilerResult
     {
         $result = new CompilerResult();
-        foreach ($this->fileIterator->iterate($directory) as $ast) {
+        foreach (FileIterator::iterateAsAst($directory) as $ast) {
 
             /** @var Node\Stmt\ClassLike $classNode */
             $classNode = Parser::filterOne($ast, [Class_::class, Interface_::class, Trait_::class]);

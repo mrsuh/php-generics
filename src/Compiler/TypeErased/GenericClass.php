@@ -3,10 +3,10 @@
 namespace Mrsuh\PhpGenerics\Compiler\TypeErased;
 
 use Mrsuh\PhpGenerics\Compiler\ClassFinder\ClassFinderInterface;
+use Mrsuh\PhpGenerics\Compiler\ClassParser;
 use Mrsuh\PhpGenerics\Compiler\CompilerResult;
 use Mrsuh\PhpGenerics\Compiler\ConcreteClass;
-use Mrsuh\PhpGenerics\Compiler\ClassParser;
-use Mrsuh\PhpGenerics\Compiler\Monomorphic\GenericParametersMap;
+use Mrsuh\PhpGenerics\Compiler\GenericParametersMap;
 use Mrsuh\PhpGenerics\Compiler\Parser;
 use PhpParser\Node;
 
@@ -36,7 +36,7 @@ class GenericClass
         if (count($parameters) === 0) {
             $concreteGenericsMap = new GenericParametersMap($this->classFinder);
         } else {
-            $emptyArguments       = array_fill(0, count($parameters), true);
+            $emptyArguments      = array_fill(0, count($parameters), true);
             $concreteGenericsMap = GenericParametersMap::fromParametersAndArguments($this->classFinder, $parameters, $emptyArguments);
         }
 

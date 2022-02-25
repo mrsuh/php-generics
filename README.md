@@ -15,9 +15,9 @@
 
 ## How it works
 
-In general:
+In a nutshell:
 + parse generics classes;
-+ generate concrete classes based on them;
++ generate concrete classes based on them (you can choose `monomorphization` or `type-erasure`);
 + autoload concrete classes instead of generics classes.
 
 For example, you need to add several PHP files:
@@ -134,26 +134,55 @@ composer.json
 
 A new class is generated for each generic argument combination.
 
-![](./doc/monomorphization.png)
+Before `monomorphization`:
+```php
+<?php
 
-### Command
+namespace App;
+
+class Box<T> {
+
+    private ?T $data = null;
+
+    public function set(T $data): void
+    {
+        $this->data = $data;
+    }
+
+    public function get(): ?T
+    {
+        return $this->data;
+    }
+}
+```
+
+After `monomorphization`:
+```php
+<?php
+
+namespace App;
+
+class BoxForInt {
+
+    private ?int $data = null;
+    
+    public function set(int $data) : void
+    {
+        $this->data = $data;
+    }
+    
+    public function get() : ?int
+    {
+        return $this->data;
+    }
+}
+```
+#### Command
 ```bash
 composer dump-generics
 ```
 
-### Where in class can generics be used?
-
-+ extends
-+ implements
-+ trait use
-+ property type
-+ method argument type
-+ method return type
-+ instanceof
-+ new
-+ class constants
-
-An example of class that uses generics:
+#### Where in class can generics be used?
 ```php
 <?php
 
@@ -163,66 +192,49 @@ use App\Entity\Cat;
 use App\Entity\Bird;
 use App\Entity\Dog;
 
-class Test extends GenericClass<Cat> implements GenericInterface<Bird> {
+class Test extends GenericClass<Cat> implements GenericInterface<Bird> { // <-- extends/implements
  
-  use GenericTrait<Dog>;
+  use GenericTrait<Dog>; // <-- trait use
  
-  private GenericClass<int>|GenericClass<Dog> $var;
+  private GenericClass<int>|GenericClass<Dog> $var; // <-- property type
  
-  public function test(GenericInterface<int>|GenericInterface<Dog> $var): GenericClass<string>|GenericClass<Bird> {
+  public function test(GenericInterface<int>|GenericInterface<Dog> $var): GenericClass<string>|GenericClass<Bird> { // <-- method argument/return type
       
-       var_dump($var instanceof GenericInterface<int>);
+       var_dump($var instanceof GenericInterface<int>); // <-- instanceof
       
-       var_dump(GenericClass<int>::class);
+       var_dump(GenericClass<int>::class); // <-- class constants      
+       var_dump(GenericClass<array>::CONSTANT); // <-- class constants
       
-       var_dump(GenericClass<array>::CONSTANT);
-      
-       return new GenericClass<float>();
+       return new GenericClass<float>(); // <-- new
   }
 }
 ```
 
-### Where in generic class can parameters be used?
-
-+ extends
-+ implements
-+ trait use
-+ property type
-+ method argument type
-+ method return type
-+ instanceof
-+ new
-+ class constants
-
-And example of generic class:
+#### Where in generic class can parameters be used?
 ```php
 <?php
 
 namespace App;
 
-class Test<T,V> extends GenericClass<T> implements GenericInterface<V> {
+class Test<T,V> extends GenericClass<T> implements GenericInterface<V> { // <-- extends/implements
  
-  use GenericTrait<T>;
-  use T;
+  use GenericTrait<T>; // <-- trait use
+  use T; // <-- trait use
  
-  private T|GenericClass<V> $var;
+  private T|GenericClass<V> $var; // <-- property type
  
-  public function test(T|GenericInterface<V> $var): T|GenericClass<V> {
+  public function test(T|GenericInterface<V> $var): T|GenericClass<V> { // <-- method argument/return type
       
-       var_dump($var instanceof GenericInterface<V>);
+       var_dump($var instanceof GenericInterface<V>); // <-- instanceof      
+       var_dump($var instanceof T); // <-- instanceof
       
-       var_dump($var instanceof T);
+       var_dump(GenericClass<T>::class); // <-- class constants   
+       var_dump(T::class); // <-- class constants
+       var_dump(GenericClass<T>::CONSTANT); // <-- class constants
+       var_dump(T::CONSTANT); // <-- class constants
       
-       var_dump(GenericClass<T>::class);
-      
-       var_dump(T::class);
-      
-       var_dump(GenericClass<T>::CONSTANT);
-      
-       var_dump(T::CONSTANT);
-      
-       $obj1 = new T();
-       $obj2 = new GenericClass<V>();
+       $obj1 = new T(); // <-- new
+       $obj2 = new GenericClass<V>(); // <-- new
       
        return $obj2;
   }
@@ -235,26 +247,56 @@ class Test<T,V> extends GenericClass<T> implements GenericInterface<V> {
 
 A new class is generated without generics arguments.
 
-![](./doc/type-erasure.png)
+Before `type erasure`:
+```php
+<?php
 
-### Command
+namespace App;
+
+class Box<T> {
+
+    private ?T $data = null;
+
+    public function set(T $data): void
+    {
+        $this->data = $data;
+    }
+
+    public function get(): ?T
+    {
+        return $this->data;
+    }
+}
+```
+
+After `type erasure`:
+```php
+<?php
+
+namespace App;
+
+class Box {
+
+    private $data = null;
+    
+    public function set($data) : void
+    {
+        $this->data = $data;
+    }
+    
+    public function get()
+    {
+        return $this->data;
+    }
+}
+```
+
+#### Command
 ```bash
 composer dump-generics --type=type-erasure
 ```
 
-### Where in class can generics be used?
-
-+ extends
-+ implements
-+ trait use
-+ property type
-+ method argument type
-+ method return type
-+ instanceof
-+ new
-+ class constants
-
-An example of class that uses generics:
+#### Where in class can generics be used?
 ```php
 <?php
 
@@ -264,61 +306,49 @@ use App\Entity\Cat;
 use App\Entity\Bird;
 use App\Entity\Dog;
 
-class Test extends GenericClass<Cat> implements GenericInterface<Bird> {
+class Test extends GenericClass<Cat> implements GenericInterface<Bird> { // <-- extends/implements
  
-  use GenericTrait<Dog>;
+  use GenericTrait<Dog>; // <-- trait use
  
-  private GenericClass<int>|GenericClass<Dog> $var;
+  private GenericClass<int>|GenericClass<Dog> $var; // <-- property type
  
-  public function test(GenericInterface<int>|GenericInterface<Dog> $var): GenericClass<string>|GenericClass<Bird> {
+  public function test(GenericInterface<int>|GenericInterface<Dog> $var): GenericClass<string>|GenericClass<Bird> { // <-- method argument/return type
       
-       var_dump($var instanceof GenericInterface<int>);
+       var_dump($var instanceof GenericInterface<int>); // <-- instanceof
       
-       var_dump(GenericClass<int>::class);
+       var_dump(GenericClass<int>::class); // <-- class constants      
+       var_dump(GenericClass<array>::CONSTANT); // <-- class constants
       
-       var_dump(GenericClass<array>::CONSTANT);
-      
-       return new GenericClass<float>();
+       return new GenericClass<float>(); // <-- new
   }
 }
 ```
 
-:blue_book: You can read more about `type-erasure` [here](https://dev.to/mrsuh/generics-implementation-approaches-3bf0).
-
-### Where in generic class can parameters be used?
-
-+ extends
-+ implements
-+ property type
-+ method argument type
-+ method return type
-
-And example of generic class:
+#### Where in generic class can parameters be used?
 ```php
 <?php
 
 namespace App;
 
-class Test<T,V> extends GenericClass<T> implements GenericInterface<V> {
+class Test<T,V> extends GenericClass<T> implements GenericInterface<V> { // <-- extends/implements
  
-  use GenericTrait<T>;
+  use GenericTrait<T>; // <-- trait use
  
-  private GenericClass<V> $var;
+  private GenericClass<V> $var; // <-- property type
  
-  public function test(T|GenericInterface<V> $var): T|GenericClass<V> {
+  public function test(T|GenericInterface<V> $var): T|GenericClass<V> { // <-- method argument/return type
       
-       var_dump($var instanceof GenericInterface<V>);          
+       var_dump($var instanceof GenericInterface<V>); // <-- instanceof          
       
-       var_dump(GenericClass<T>::class);     
+       var_dump(GenericClass<T>::class); // <-- class constants           
+       var_dump(GenericClass<T>::CONSTANT); // <-- class constants      
       
-       var_dump(GenericClass<T>::CONSTANT);      
-      
-       $obj2 = new GenericClass<V>();
-      
-       return $obj2;
+       return new GenericClass<V>(); // <-- new           
   }
 }
 ```
+
+:blue_book: You can read more about `type-erasure` [here](https://dev.to/mrsuh/generics-implementation-approaches-3bf0).
 
 ## Features
 

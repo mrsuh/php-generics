@@ -6,20 +6,9 @@ use Symfony\Component\Finder\Finder;
 
 class FileIterator
 {
-    public function iterate(string $directory): \Iterator
+    public static function iterateAsAst(string $directory): \Iterator
     {
-        $sourceFiles = (new Finder())
-            ->in($directory)
-            ->name('*.php')
-            ->sortByName()
-            ->files();
-
-        foreach ($sourceFiles as $sourceFile) {
-
-            $sourceFilePath = $sourceFile->getRealPath();
-            if (!is_readable($sourceFilePath)) {
-                throw new \RuntimeException(sprintf('File "%s" is not readable', $sourceFilePath));
-            }
+        foreach (self::iterateAsFilePath($directory) as $sourceFilePath) {
 
             $content = file_get_contents($sourceFilePath);
             if ($content === false) {
@@ -37,6 +26,25 @@ class FileIterator
             }
 
             yield $ast;
+        }
+    }
+
+    public static function iterateAsFilePath(string $directory): \Iterator
+    {
+        $sourceFiles = (new Finder())
+            ->in($directory)
+            ->name('*.php')
+            ->sortByName()
+            ->files();
+
+        foreach ($sourceFiles as $sourceFile) {
+
+            $sourceFilePath = $sourceFile->getRealPath();
+            if (!is_readable($sourceFilePath)) {
+                throw new \RuntimeException(sprintf('File "%s" is not readable', $sourceFilePath));
+            }
+
+            yield $sourceFilePath;
         }
     }
 }
