@@ -21,9 +21,9 @@ In a nutshell:
 + autoload concrete classes instead of generics classes.
 
 For example, you need to add several PHP files:
-+ generic class `Box`
-+ class `Usage` for use generic class
-+ script with composer autoload and `Usage` class
++ generic class `Box`;
++ class `Usage` for use generic class;
++ script with composer autoload and `Usage` class.
 
 src/Box.php
 ```php
