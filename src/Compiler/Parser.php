@@ -158,6 +158,12 @@ class Parser
             case $node instanceof Node\NullableType:
                 return [&$node->type];
             case $node instanceof Node\UnionType:
+                $nodeTypes = [];
+                foreach ($node->types as &$nodeType) {
+                    $nodeTypes = array_merge($nodeTypes, self::getNodeTypes($nodeType));
+                }
+                return $nodeTypes;
+            case $node instanceof Node\IntersectionType:
                 return $node->types;
             default:
                 throw new \TypeError(sprintf('Invalid node type "%s" for getNodeTypes()', get_class($node)));
