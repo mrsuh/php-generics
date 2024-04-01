@@ -3,7 +3,6 @@
 namespace Mrsuh\PhpGenerics\Compiler;
 
 use Mrsuh\PhpGenerics\Compiler\ClassFinder\ClassFinderInterface;
-use PhpParser\Lexer\Emulative;
 use PhpParser\Node;
 use PhpParser\Node\Expr\ClassConstFetch;
 use PhpParser\Node\Expr\Instanceof_;
@@ -23,10 +22,9 @@ class Parser
 {
     public static function parse(string $code): array
     {
-        $lexer  = new Emulative();
-        $parser = (new ParserFactory)->create(ParserFactory::PREFER_PHP7, $lexer);
-
-        return $parser->parse($code);
+        return (new ParserFactory)
+            ->createForNewestSupportedVersion()
+            ->parse($code);
     }
 
     /**
@@ -114,7 +112,7 @@ class Parser
                 if (self::isBuiltinType($type)) {
                     $node = new Node\Identifier($type);
                 } else {
-                    $node->parts = explode('\\', $type);
+                    $node->name = $type;
                 }
                 break;
             case $node instanceof Node\Identifier:
