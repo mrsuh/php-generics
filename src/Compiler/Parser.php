@@ -126,14 +126,20 @@ class Parser
     public static function isBuiltinType(string $type): bool
     {
         $builtinTypes = [
+            'array'    => true,
+            'callable' => true,
             'bool'     => true,
             'int'      => true,
             'float'    => true,
             'string'   => true,
             'iterable' => true,
+            'void'     => true,
             'object'   => true,
+            'null'     => true,
+            'false'    => true,
             'mixed'    => true,
-            'array'    => true,
+            'never'    => true,
+            'true'     => true,
         ];
 
         return isset($builtinTypes[strtolower($type)]);
