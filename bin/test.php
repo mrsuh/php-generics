@@ -70,7 +70,8 @@ foreach ($directories as $directory) {
     }
 
     if ($outputFiles->count() !== count($result->getConcreteClasses())) {
-        $success = false;
+        $allTestsSuccess = false;
+        printf("%s - [skip failed]\n", $directory->getBasename());
         continue;
     }
 
