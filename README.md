@@ -241,7 +241,7 @@ class Test<T,V> extends GenericClass<T> implements GenericInterface<V> { // <-- 
 }
 ```
 
-:blue_book: You can read more about `monomorphization` [here](https://dev.to/mrsuh/generics-implementation-approaches-3bf0).
+:blue_book: You can read more about `monomorphization` [here](https://mrsuh.com/articles/2022/generics-implementation-approaches/).
 
 ## Type erasure
 
@@ -348,7 +348,7 @@ class Test<T,V> extends GenericClass<T> implements GenericInterface<V> { // <-- 
 }
 ```
 
-:blue_book: You can read more about `type-erasure` [here](https://dev.to/mrsuh/generics-implementation-approaches-3bf0).
+:blue_book: You can read more about `type-erasure` [here](https://mrsuh.com/articles/2022/generics-implementation-approaches/).
 
 ## Features
 
